@@ -1,13 +1,13 @@
 {
-  "name": "Baseball Tycoon v5",
-  "short_name": "BB Tycoon",
+  "name": "Baseball Tycoon v7",
+  "short_name": "BBT v7",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050d1e",
+  "background_color": "#041022",
   "theme_color": "#0b3355",
   "icons": [
     {
-      "src": "/static/assets/logo_lad.svg",
+      "src": "/static/assets/logo_mlb-nyy.svg",
       "sizes": "128x128",
       "type": "image/svg+xml"
     }

@@ -1,6 +1,6 @@
 {
-  "name": "semibaseball-v5",
-  "version": "5.0.0",
+  "name": "bbtycoon-v7",
+  "version": "7.0.0",
   "private": true,
   "engines": {
     "node": ">=18.x"
