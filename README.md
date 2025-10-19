@@ -1,8 +1,5 @@
-Baseball Tycoon — Full static PWA package
+# Baseball Tycoon v2 — PWA + Heroku-ready
 
-Deploy to GitHub Pages:
-1. Create new repo on GitHub and upload these files to repo root.
-2. Settings -> Pages -> Branch: main (root). Save.
-3. Open the provided URL and Add to Home Screen on iPhone.
-
-Notes: leaderboard gist sync requires GitHub token with gist scope. All game data stored in localStorage. Export save to backup.
+部署到 GitHub Pages：上傳整包到 repo root，Settings->Pages 啟用。
+部署到 Heroku：本專案含 package.json / server.js / Procfile，直接 git push 即可。
+本地啟動：npm i && npm start
