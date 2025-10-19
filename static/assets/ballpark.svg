@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260" width="360" height="260">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#1e824e"/><stop offset="1" stop-color="#16653f"/></linearGradient>
+    <linearGradient id="dirt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#AD7A4E"/><stop offset="1" stop-color="#8A5A36"/></linearGradient>
+  </defs>
+  <rect x="0" y="0" width="360" height="260" fill="#13324e"/>
+  <ellipse cx="180" cy="180" rx="160" ry="110" fill="url(#g1)"/>
+  <path d="M50 170 Q180 115 310 170 L310 210 Q180 250 50 210 Z" fill="url(#g1)" stroke="#0b3a2a" stroke-width="2"/>
+  <circle cx="180" cy="180" r="38" fill="url(#dirt)" stroke="#713f22"/>
+  <path d="M180 142 L180 180 L220 180" fill="url(#dirt)" stroke="#713f22"/>
+  <g fill="#fff">
+    <rect x="178" y="176" width="4" height="4" transform="rotate(45 180 178)"/>
+    <rect x="157" y="157" width="4" height="4" transform="rotate(45 159 159)"/>
+    <rect x="198" y="157" width="4" height="4" transform="rotate(45 200 159)"/>
+    <rect x="178" y="197" width="4" height="4" transform="rotate(45 180 199)"/>
+  </g>
+</svg>
