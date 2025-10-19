@@ -1,616 +1,631 @@
 
-(function(){
-  const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+/* Core game */
+const STATE = {
+  year: 2034,
+  week: 1,
+  cash: 10_000_000,
+  rep: 200,
+  clients: [], // players under contract with agent
+  freePlayers: [], // free market
+  staff: { scout: 1, biz: 1, coach: 1 },
+  academy: { level: 1, slots: 2, sources: {HS: true, College: true, Overseas: true} },
+  news: [],
+  teams: [],   // [{leagueKey, name, roster:[], rating, stats, champYears:[] }]
+  champions: {}, // {year:{leagueKey:teamName}}
+};
 
-  // ---------------- State ----------------
-  const state = {
-    money: 3_000_000,
-    week: 1,
-    season: 2129,
-    rep: 120,
-    office: { level: 3 },
-    academy: { level: 2 },
-    employees: { scout: 1, negotiator: 1, trainer: 1 },
-    clients: [],
-    prospects: [],
-    aiAgencies: [],
-    finance: [],
-    news: [],
-    purchases: [],
-    achievements: {},
-    teams: [],
+/** Utilities */
+const fmtMoney = n => "$" + Math.round(n).toLocaleString();
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const rand = (a,b)=>a+Math.random()*(b-a);
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const sum = arr => arr.reduce((a,b)=>a+b,0);
+
+/* Player factory */
+function createPlayer(seed={}){
+  const POS = ["投手","捕手","一壘","二壘","三壘","游擊","左外","中外","右外","DH"];
+  const bats = choice(["右打","左打","雙打"]);
+  const throws = choice(["右投","左投"]);
+  const pos = choice(POS);
+  const ovr = Math.round(rand(40,95)); // base ability
+  const batting = {
+    vsR: Math.round(rand(30,95)),
+    vsL: Math.round(rand(30,95)),
+    clutch: Math.round(rand(30,95)),
+    power: Math.round(rand(30,95)),
+    eye: Math.round(rand(30,95)),
+    tough: Math.round(rand(30,95)),
   };
-
-  // ---------------- Helpers ----------------
-  const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
-  const choice = arr => arr[rand(0, arr.length-1)];
-  const chance = p => Math.random()<p;
-  const moneyFmt = n => "$"+Math.round(n).toLocaleString();
-  const weeksPerSeason = 52;
-
-  const positions = ["投手(P)","捕手(C)","一壘(1B)","二壘(2B)","三壘(3B)","游擊(SS)","左外(LF)","中外(CF)","右外(RF)"];
-  const surnames = "陳林黃張李王吳劉蔡楊許鄭謝洪郭邱曾廖賴周徐蘇葉莊".split("");
-  const names = "志豪柏廷俊傑承恩凱翔冠宇哲瑋家豪家銘柏宇宇軒宥勝峻豪廷恩冠廷".split("");
-
-  function pickName(){ return choice(surnames)+choice(names); }
-  function createTeam(i){
-    const city = ["台北","台中","高雄","台南","新北","桃園","新竹","花蓮","嘉義","宜蘭","台東","屏東"][i%12];
-    const animal = ["獅","鷹","熊","龍","鯨","雷","豹","虎","鯊","狼"][i%10];
-    return { id:i, name: city + animal, league:(i%2?"AL":"NL"), stats: {
-      AVG:(0.220+Math.random()*0.1).toFixed(3),
-      OPS:(0.650+Math.random()*0.2).toFixed(3),
-      KBB: rand(150,950),
-      ERA:(2.80+Math.random()*3).toFixed(3),
-      WHIP:(1.10+Math.random()*0.6).toFixed(3),
-    }};
-  }
-
-  function baseSkill(){
-    // hitting
-    const hitR = rand(40,80);
-    const hitL = rand(40,80);
-    const clutch = rand(40,80);
-    const power = rand(40,80);
-    const vision = rand(40,80);
-    const grit = rand(40,80);
-    // pitching
-    const pFF = rand(10,80);
-    const pSI = rand(10,70);
-    const pSL = rand(10,70);
-    const pCU = rand(5,60);
-    const pCH = rand(5,60);
-    return { hitR, hitL, clutch, power, vision, grit, pFF, pSI, pSL, pCU, pCH };
-  }
-
-  function calcOVR(s){
-    const bat = (s.hitR + s.hitL + s.clutch + s.power + s.vision + s.grit) / 6;
-    const pit = (s.pFF + s.pSI + s.pSL + s.pCU + s.pCH) / 5;
-    return Math.round( (bat*0.6 + pit*0.4) );
-  }
-
-  function createPlayer(id){
-    const age = rand(18,34);
-    const pos = choice(positions);
-    const club = choice(state.teams).name;
-    const s = baseSkill();
-    const ovr = calcOVR(s);
-    const salary = Math.floor(800 + ovr*25 + rand(0, 600)) * 100; // per week
-    const contractYears = rand(2,4);
-    return {
-      id, name: pickName(), position: pos, age,
-      club, status: "健康",
-      skills: s, ovr,
-      salaryPerWeek: salary,
-      contractEndWeek: state.season*weeksPerSeason + contractYears*weeksPerSeason,
-      value: Math.floor(ovr*75_000 + rand(100_000, 2_000_000)),
-      potential: Math.min(99, ovr + rand(1,15)),
-      history: []
-    };
-  }
-
-  function officeCap(level){ return 10 + level*5; }
-  function officeCost(level){ return level*120_000; }
-  function academyCost(level){ return level*40_000; }
-  function academyGrads(level){ return 1 + Math.floor(level*0.8 + 1); }
-
-  function addFinance(kind, delta, meta={}){
-    state.finance.unshift({ ts: `${state.season}W${state.week.toString().padStart(2,"0")}`, kind, delta, meta});
-    state.money += delta;
-    renderTop(); renderFinance();
-  }
-
-  function pushNews(title, body){
-    state.news.unshift({ id: Date.now()+""+Math.random(), title, body, ts:`${state.season}:${state.week}` });
-    renderNews();
-  }
-
-  function save(){ localStorage.setItem("bb_agent_save_v02", JSON.stringify(state)); alert("已儲存"); }
-  function load(){
-    const s = localStorage.getItem("bb_agent_save_v02");
-    if(!s){ alert("沒有存檔"); return; }
-    Object.assign(state, JSON.parse(s));
-    renderAll();
-    alert("已載入");
-  }
-
-  function newGame(){
-    state.money = 3_000_000;
-    state.week = 1; state.season = 2129; state.rep = 120;
-    state.office = { level: 3 };
-    state.academy = { level: 2 };
-    state.employees = { scout: 1, negotiator: 1, trainer: 1 };
-    state.teams = Array.from({length:20}, (_,i)=>createTeam(i));
-    state.clients = Array.from({length: 16}, (_,i)=>createPlayer(i));
-    state.prospects = [];
-    state.aiAgencies = Array.from({length:19}, (_,i)=>({ name: i===0?"Zahavi管理":"Agency "+(i+1), revenue: rand(500_000, 12_000_000)}));
-    state.finance = [];
-    state.news = [];
-    state.purchases = [];
-    state.achievements = {};
-    addFinance("初始資金", 3_000_000);
-    pushNews("夏季轉會窗口已打開", "提醒：球季結束，交易/自由球員窗口開啟。");
-    renderAll();
-  }
-
-  // ---------------- Shop ----------------
-  const SHOP = {
-    goods: [
-      { id:"console", name:"遊戲機", price: 5000, rep:5, desc:"紓壓小物，提升心情與少量知名度。" },
-      { id:"laptop", name:"筆記型電腦", price: 15000, rep:4, desc:"提升文件處理效率（談判成功率+1%）。" },
-      { id:"fashion", name:"名牌服裝", price: 40000, rep:15, desc:"門面要有，見客更有自信。" },
-      { id:"billiard", name:"撞球桌", price: 30000, rep:8, desc:"社交場合加分，客戶關係+1。" },
-      { id:"wine", name:"酒窖", price: 120000, rep:18, desc:"高端招待，贊助合作小幅提升。" },
-      { id:"suite", name:"套房", price: 250000, rep:25, desc:"穩定的基地，知名度+25。" },
-      { id:"pen", name:"古董筆", price: 8000, rep:2, desc:"簽約儀式更講究。"},
-      { id:"condo", name:"公寓", price: 600000, rep:35, desc:"資產增長（每週租金收入）。"},
-      { id:"horse", name:"賽馬", price: 900000, rep:40, desc:"豪奢象徵，偶爾帶來獎金。"},
-    ],
-    transport: [
-      { id:"car", name:"跑車", price: 200000, rep:20, desc:"更快拜訪客戶，談判+1%。" },
-      { id:"suv", name:"SUV", price: 120000, rep:12, desc:"載具寬敞，球探出差方便。" },
-      { id:"jet", name:"私人小噴", price: 5_000_000, rep:80, desc:"跨洲洽談沒在怕（贊助更願意談）。" }
-    ],
-    biz: [
-      { id:"agencyBrand", name:"品牌公關套餐", price: 180000, rep:30, desc:"知名度快速提升，新聞報導更常見。" },
-      { id:"analytics", name:"數據分析系統", price: 220000, rep:10, desc:"球員估值更準確（溢價+5%）。" },
-      { id:"academyLv", name:"學院擴編基金", price: 150000, rep:0, effect:"academy+1", desc:"直接提升學院等級+1。" },
-    ]
+  const pitching = {
+    fb: Math.round(rand(20,95)),
+    sinker: Math.round(rand(10,90)),
+    slider: Math.round(rand(10,90)),
+    curve: Math.round(rand(10,90)),
+    change: Math.round(rand(10,90)),
+    control: Math.round(rand(20,95)),
   };
+  const age = Math.round(rand(18,34));
+  const salary = Math.round(rand(100_000,1_500_000));
+  return {
+    id: cryptoRandomId(),
+    name: genName(),
+    age, pos, bats, throws,
+    batting, pitching,
+    ovr,
+    morale: 70,
+    contract: {team:null, weeksLeft:52, weekly: Math.round(salary/52), agentCut: 0.10, endorsements:0},
+    fame: Math.round(rand(20,200)),
+  };
+}
 
-  function isOwned(id){ return state.purchases.includes(id); }
-  function buyItem(it){
-    if(isOwned(it.id)) return;
-    if(state.money < it.price){ alert("資金不足"); return; }
-    state.purchases.push(it.id);
-    addFinance("個人用品購買 - "+it.name, -it.price);
-    state.rep += it.rep || 0;
-    if(it.effect==="academy+1"){ state.academy.level++; }
-    renderShop(); renderTop();
-  }
+function cryptoRandomId(){ return Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,10); }
+function genName(){
+  const first = ["Shawn","Ken","Mike","Leo","Ricky","Jay","Aaron","Will","Kyle","Ryan","Ethan","Jae","Min","Hyun","Yuki","Kenta","Sho","Yu","Wei","Cheng","Yi","Hao","Jun","Kenji","Luis","Juan","Miguel","Jose"];
+  const last = ["Hung","Chen","Lin","Wang","Li","Kim","Park","Lee","Choi","Suzuki","Sato","Tanaka","Yamamoto","Ohtani","Sasaki","Garcia","Rodriguez","Martinez","Hernandez","Brown","Smith","Jones"];
+  return choice(first)+" "+choice(last);
+}
 
-  // ---------------- Rendering Top/Main ----------------
-  function renderTop(){
-    $("#money").textContent = moneyFmt(state.money);
-    $("#seasonWeek").textContent = `${state.season}: 第 ${state.week} 週`;
-    $("#rep").textContent = state.rep;
-  }
-  function renderMain(){
-    $("#officeLevel").textContent = `Lv.${state.office.level}`;
-    $("#clientsCount").textContent = `${state.clients.length} / ${officeCap(state.office.level)}`;
-    $("#staffSummary").textContent = `球探${state.employees.scout} 商務${state.employees.negotiator} 教練${state.employees.trainer}`;
-    $("#academyLevel").textContent = `Lv.${state.academy.level}`;
-    $("#shopHint").textContent = `${state.purchases.length} 已購`;
-  }
+/* Teams from LEAGUES */
+function initTeams(){
+  STATE.teams = LEAGUES.flatMap(l => l.teams.map(t => ({
+    id: cryptoRandomId(),
+    name: t,
+    league: l.key,
+    tier: l.tier,
+    roster: [],
+    rating: 50 + l.tier*10 + Math.round(rand(-5,5)),
+    stats: {AVG:.250, OPS:.700, KBB:2.5, ERA:4.00, WHIP:1.35},
+    wins:0,losses:0,
+    champYears:[]
+  })));
+}
 
-  // ---------------- Office/Academy ----------------
-  function renderOffice(){
-    $("#officeLvl").textContent = "Lv."+state.office.level;
-    $("#officeCap").textContent = officeCap(state.office.level);
-    $("#officeCost").textContent = moneyFmt(officeCost(state.office.level));
-    $("#officeUpCost").textContent = moneyFmt(250000 * state.office.level);
-  }
-  function renderAcademy(){
-    $("#academyLvl").textContent = "Lv."+state.academy.level;
-    $("#academyGrad").textContent = academyGrads(state.academy.level);
-    $("#academyCost").textContent = moneyFmt(academyCost(state.academy.level));
-    $("#academyUpCost").textContent = moneyFmt(120000 * state.academy.level);
-    const ul = $("#prospects");
-    ul.innerHTML = "";
-    state.prospects.forEach(p=>{
-      const li = document.createElement("li");
-      li.textContent = `${p.name} ${p.position} OVR${p.ovr} 年齡${p.age}`;
-      const b = document.createElement("button");
-      b.textContent = "簽下";
-      b.onclick = ()=>{
-        if(state.clients.length >= officeCap(state.office.level)){ alert("超出客戶容量，請升級辦公室。"); return; }
-        state.clients.push(p);
-        addFinance("簽下新秀簽約費", -50_000);
-        unlock("簽下第一名新秀");
-        state.prospects = state.prospects.filter(x=>x.id!==p.id);
-        renderAcademy(); renderClients();
-      };
-      li.appendChild(b);
-      ul.appendChild(li);
+/* Difficulty model */
+function signChance(player, team){
+  const tier = team.tier;
+  const baseline = {1:45, 2:52, 3:62, 4:72, 5:82}[tier] || 60;
+  const repBoost = Math.log(1+STATE.rep)/5;
+  const delta = player.ovr - baseline;
+  const p = 1/(1+Math.exp(- (delta/6 + repBoost - (Math.random()*0.5)) ));
+  return clamp(p,0.01,0.98);
+}
+
+/* Performance scaling */
+function perfMultiplier(player, team){
+  // center at OVR ~ baseline of tier
+  const baseline = {1:45, 2:52, 3:62, 4:72, 5:82}[team.tier] || 60;
+  const diff = player.ovr - baseline;
+  // translate to 0.75..1.35
+  return clamp(1 + diff/100, 0.70, 1.45);
+}
+
+/* Season sim */
+function simulateSeason(){
+  // reset team stats
+  STATE.teams.forEach(t => {t.wins=0;t.losses=0;});
+  // quick sim: each team strength = avg OVR top 12 players
+  const leagueGroups = groupBy(STATE.teams, t => t.league);
+  Object.entries(leagueGroups).forEach(([leagueKey,teams]) => {
+    teams.forEach(t => {
+      const top = t.roster.slice().sort((a,b)=>b.ovr-a.ovr).slice(0,12);
+      const strength = top.length? top.reduce((a,p)=>a+p.ovr*perfMultiplier(p,t),0)/top.length : 40+t.tier*8;
+      t._strength = strength + rand(-2,2);
+      // derive team stat lines
+      t.stats.AVG = clamp(.200 + (t._strength-60)/400, .200, .320);
+      t.stats.OPS = clamp(.600 + (t._strength-60)/200, .550, .900);
+      t.stats.KBB = clamp(2 + (t._strength-60)/80, 1.2, 4.5);
+      t.stats.ERA = clamp(4.5 - (t._strength-60)/40, 2.20, 6.50);
+      t.stats.WHIP = clamp(1.40 - (t._strength-60)/200, 1.05, 1.60);
     });
-  }
-
-  // ---------------- Clients ----------------
-  function renderClients(){
-    const tbody = $("#clientsTable tbody");
-    tbody.innerHTML = "";
-    state.clients.forEach(p=>{
-      const yrs = Math.floor((p.contractEndWeek - (state.season*weeksPerSeason+state.week))/weeksPerSeason);
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td><b>${p.name}</b><br/><small>${p.club}</small></td>
-        <td>${p.position}</td><td>${p.ovr}</td><td>${p.age}</td>
-        <td>${p.potential}</td>
-        <td>${moneyFmt(p.salaryPerWeek)}</td><td>${yrs} 年</td>
-        <td><button class="mini">詳情</button></td>`;
-      tr.querySelector("button").onclick = ()=>openPlayer(p);
-      tbody.appendChild(tr);
-    });
-  }
-
-  function skillBlock(p){
-    const s = p.skills;
-    return `
-      <div class="h-scroll">
-        <div class="card"><b>對右投打擊</b> Lv.${s.hitR}</div>
-        <div class="card"><b>對左投打擊</b> Lv.${s.hitL}</div>
-        <div class="card"><b>關鍵能力</b> Lv.${s.clutch}</div>
-        <div class="card"><b>爆擊</b> Lv.${s.power}</div>
-        <div class="card"><b>視野</b> Lv.${s.vision}</div>
-        <div class="card"><b>堅韌</b> Lv.${s.grit}</div>
-      </div>
-      <div class="h-scroll">
-        <div class="card"><b>四縫線速球</b> Lv.${s.pFF}</div>
-        <div class="card"><b>二縫線速球</b> Lv.${s.pSI}</div>
-        <div class="card"><b>滑球</b> Lv.${s.pSL}</div>
-        <div class="card"><b>曲球</b> Lv.${s.pCU}</div>
-        <div class="card"><b>變速球</b> Lv.${s.pCH}</div>
-      </div>
-    `;
-  }
-
-  function drawOVR(p){
-    const c = $("#pOVR"); const ctx = c.getContext("2d");
-    ctx.clearRect(0,0,c.width,c.height);
-    const center = {x:c.width/2,y:c.height/2};
-    const metrics = [
-      ["hitR", p.skills.hitR],["hitL", p.skills.hitL],["clutch", p.skills.clutch],
-      ["power", p.skills.power],["vision", p.skills.vision],["grit", p.skills.grit],
-      ["pFF", p.skills.pFF],["pSI", p.skills.pSI],["pSL", p.skills.pSL],
-      ["pCU", p.skills.pCU],["pCH", p.skills.pCH],
-    ];
-    const max = 100;
-    const r0 = 30, rMax = 110;
-    // base ring
-    ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.globalAlpha=0.3;
-    ctx.beginPath(); ctx.arc(center.x,center.y,rMax,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
-    // segments
-    metrics.forEach((m,i)=>{
-      const angle = (i/metrics.length)*Math.PI*2 - Math.PI/2;
-      const r = r0 + (rMax-r0)*(m[1]/max);
-      const x = center.x + r*Math.cos(angle);
-      const y = center.y + r*Math.sin(angle);
-      ctx.beginPath(); ctx.moveTo(center.x,center.y); ctx.lineTo(x,y); ctx.stroke();
-    });
-    // OVR text
-    ctx.fillStyle="#fff"; ctx.font="bold 38px system-ui"; ctx.textAlign="center";
-    ctx.fillText(p.ovr, center.x, center.y+14);
-  }
-
-  let currentPlayer = null;
-  function openPlayer(p){
-    currentPlayer = p;
-    $("#pName").textContent = p.name;
-    $("#pInfo").innerHTML = `年齡 ${p.age}｜位置 ${p.position}｜球會 ${p.club}<br>
-      OVR <b>${p.ovr}</b>（潛力 ${p.potential}）｜薪資/週 ${moneyFmt(p.salaryPerWeek)}｜身價 ${moneyFmt(p.value)}`;
-    $("#pSkills").innerHTML = skillBlock(p);
-    drawOVR(p);
-    show("player");
-  }
-
-  // ---------------- Negotiation / Trade ----------------
-  let pendingOffer = null;
-  function openNegotiation(p){
-    pendingOffer = { player: p, target: choice(state.teams) };
-    $("#negTitle").textContent = `對 ${p.name} 的競標`;
-    $("#negBody").innerHTML = `
-      <div>來自 <b>${pendingOffer.target.name}</b> 的報價意向。</div>
-      <div>建議價：${moneyFmt(p.value*0.6)} ~ ${moneyFmt(p.value*1.2)}</div>
-      <div>你的抽成：轉會費的 10%</div>
-    `;
-    const r = $("#offerRange");
-    r.min = Math.floor(p.value*0.4); r.max = Math.floor(p.value*1.6); r.step = 50_000; r.value = Math.floor(p.value);
-    $("#offerValText").textContent = moneyFmt(+r.value);
-    show("negotiation");
-  }
-
-  function acceptOffer(){
-    const fee = +$("#offerRange").value;
-    const cut = Math.floor(fee*0.10);
-    addFinance("轉會費佣金", cut, {fee});
-    pushNews(`${pendingOffer.player.name} 完成轉隊`, `${pendingOffer.player.name} 轉投 ${pendingOffer.target.name}，轉會費 ${moneyFmt(fee)}，你的抽成 ${moneyFmt(cut)}。`);
-    // move club & small morale boost
-    pendingOffer.player.club = pendingOffer.target.name;
-    pendingOffer.player.salaryPerWeek += Math.floor(fee/2000);
-    unlock("完成首筆轉會");
-    show("clients"); renderClients();
-  }
-
-  function counterOffer(){
-    const fee = +$("#offerRange").value;
-    if(chance(0.55 + state.employees.negotiator*0.03)){
-      addFinance("轉會費佣金（反出價）", Math.floor(fee*0.12), {fee});
-      pushNews("反出價成功", `你與 ${pendingOffer.target.name} 達成新價格 ${moneyFmt(fee)}。`);
-      pendingOffer.player.club = pendingOffer.target.name;
-    }else{
-      pushNews("反出價失敗", `${pendingOffer.target.name} 不願接受你的要價。`);
+    // round-robin approx
+    for(let i=0;i<teams.length*18;i++){
+      const a = choice(teams), b = choice(teams.filter(x=>x!==a));
+      const pa = 1/(1+Math.exp(-(a._strength-b._strength)/3));
+      if(Math.random()<pa) a.wins++, b.losses++; else b.wins++, a.losses++;
     }
-    show("clients"); renderClients();
-  }
-
-  // ---------------- Staff ----------------
-  function renderStaff(){
-    const staff = state.employees;
-    const mk = (role,label)=>{
-      const lv = staff[role];
-      return `<div class="card"><b>${label}</b> Lv.${lv}　每週薪資 ${moneyFmt(lv*2600)}<button data-up="${role}">升級</button></div>`;
-    };
-    $("#staffList").innerHTML = mk("scout","球探") + mk("negotiator","商務經理") + mk("trainer","教練");
-    $$("#staffList [data-up]").forEach(b=> b.onclick = ()=>{
-      const role = b.dataset.up; const lv = state.employees[role];
-      const cost = 2000 * (lv+1) * 12;
-      if(state.money<cost){ alert("資金不足"); return; }
-      state.employees[role]++;
-      addFinance(`提升${role}等級`, -cost);
-      renderStaff(); renderMain();
-    });
-  }
-
-  // ---------------- Shop Render ----------------
-  let activeTab = "goods";
-  function renderShop(){
-    $$(".tab").forEach(t=> t.classList.toggle("active", t.dataset.tab===activeTab));
-    const list = SHOP[activeTab];
-    const host = $("#shopList"); host.innerHTML="";
-    list.forEach(it=>{
-      const li = document.createElement("div");
-      li.className="shop-item";
-      li.innerHTML = `<img src="https://picsum.photos/seed/${it.id}/140/100" alt="">
-        <div><div><b>${it.name}</b>${isOwned(it.id) ? '<span class="badge">已擁有</span>': ''}</div>
-        <small>${it.desc}</small><div>價格：${moneyFmt(it.price)}</div></div>
-        <div class="buy"><button ${isOwned(it.id)?'disabled':''}>購買</button></div>`;
-      li.querySelector("button").onclick = ()=> buyItem(it);
-      host.appendChild(li);
-    });
-  }
-
-  // ---------------- Ranking ----------------
-  function renderRanking(){
-    const meRevenue = state.finance.filter(x=>x.delta>0).reduce((a, x)=>a+x.delta, 0);
-    const rows = [{name:"雲頂國際運動行銷", revenue: meRevenue}].concat(state.aiAgencies);
-    rows.sort((a,b)=>b.revenue-a.revenue);
-    const tbody = $("#rankTable tbody"); tbody.innerHTML="";
-    rows.forEach((r,i)=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${i+1}</td><td>${r.name}</td><td>${moneyFmt(r.revenue)}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // ---------------- Finance ----------------
-  function financeTotals(){
-    const Y = state.season;
-    const yearly = state.finance.filter(f=>f.ts.startsWith(Y+"W"));
-    const sum = (kindFilter, sign=0)=> yearly.filter(f=> (sign===0 || (sign>0? f.delta>0:f.delta<0)) && (!kindFilter || f.kind.includes(kindFilter))).reduce((a,f)=>a+f.delta,0);
-    return {
-      salary: sum("合約"),
-      transfer: sum("轉會"),
-      sponsor: sum("贊助"),
-      business: sum("代言") + sum("商業") + sum("房租") + sum("獎金"),
-      staff: sum("員工",-1),
-      building: sum("營運",-1) + sum("辦公室",-1) + sum("學院",-1),
-      personal: sum("個人",-1),
-      other: sum("",0) - (sum("合約")+sum("轉會")+sum("贊助")+sum("代言")+sum("商業")+sum("房租")+sum("獎金")+sum("員工",-1)+sum("營運",-1)+sum("辦公室",-1)+sum("學院",-1)+sum("個人",-1)),
-      totalIncome: yearly.filter(f=>f.delta>0).reduce((a,f)=>a+f.delta,0),
-      totalExpense: yearly.filter(f=>f.delta<0).reduce((a,f)=>a+f.delta,0),
-    };
-  }
-  function renderFinance(){
-    const t = financeTotals();
-    $("#financeTotals").innerHTML = `
-      <h3>現年總數</h3>
-      <div>收入 — 薪資佣金：${moneyFmt(t.salary)}　轉會費佣金：${moneyFmt(t.transfer)}　贊助費佣金：${moneyFmt(t.sponsor)}　業務收入：${moneyFmt(t.business)}</div>
-      <div>支出 — 員工薪資：${moneyFmt(t.staff)}　建築物運行成本：${moneyFmt(t.building)}　個人用品：${moneyFmt(t.personal)}</div>
-      <div>結存：<b>${moneyFmt(t.totalIncome + t.totalExpense)}</b></div>
-    `;
-    $("#financeLog").textContent = state.finance.slice(0,200).map(f=>`${f.ts}  ${f.kind}  ${(f.delta>=0?"+":"")}${moneyFmt(f.delta)}`).join("\\n");
-  }
-
-  // ---------------- News & Achievements ----------------
-  function renderNews(){
-    const ul = $("#newsList"); ul.innerHTML="";
-    state.news.forEach(n=>{
-      const li = document.createElement("li");
-      li.innerHTML = `<div style="font-weight:700">${n.title}</div><div>${n.body}</div><small>${n.ts}</small>`;
-      ul.appendChild(li);
-    });
-  }
-
-  const ACH = [
-    { id:"firstRookie", name:"簽下第一名新秀", check: ()=> state.finance.some(f=>f.kind.includes("簽下新秀")) },
-    { id:"firstTransfer", name:"完成首筆轉會", check: ()=> state.finance.some(f=>f.kind.includes("轉會費佣金")) },
-    { id:"income1m", name:"年度收益破百萬", check: ()=> financeTotals().totalIncome >= 1_000_000 },
-  ];
-  function unlock(name){ state.achievements[name]=true; renderAchievements(); }
-  function renderAchievements(){
-    const ul = $("#achList"); ul.innerHTML="";
-    ACH.forEach(a=>{
-      const done = a.check() || state.achievements[a.name];
-      const li = document.createElement("li");
-      li.className="card";
-      li.innerHTML = `<b>${a.name}</b> ${done?'<span class="badge">完成</span>':'<span class="badge" style="background:#999">未完成</span>'}`;
-      ul.appendChild(li);
-    });
-  }
-
-  // ---------------- Game Loop ----------------
-  function nextWeek(){
-    // weekly costs
-    addFinance("辦公室營運成本", -officeCost(state.office.level));
-    addFinance("學院營運成本", -academyCost(state.academy.level));
-    const staffCost = (state.employees.scout+state.employees.negotiator+state.employees.trainer)*2600;
-    addFinance("員工薪資", -staffCost);
-
-    // purchases passive
-    if(isOwned("condo")) addFinance("房租收入", 10_000);
-    if(isOwned("horse") && chance(0.05)) addFinance("賽馬獎金", rand(5_000,30_000));
-
-    // player commission 12% of weekly salary
-    let commission = 0;
-    state.clients.forEach(p=> commission += Math.floor(p.salaryPerWeek * 0.12));
-    if(commission>0) addFinance("本週合約佣金", commission);
-
-    // events
-    if(chance(0.2)){
-      const p = choice(state.clients);
-      if(p) pushNews("球員要求續約", `${p.name} 表示希望獲得續約與加薪。`);
-    }
-    if(chance(0.22)){
-      // generate prospects
-      for(let i=0;i<academyGrads(state.academy.level);i++){
-        const pr = createPlayer(Date.now()+i);
-        pr.club = "自由球員"; state.prospects.push(pr);
-      }
-      pushNews("學院畢業名單", "有數名新秀可簽約。");
-      renderAcademy();
-    }
-    if(chance(0.18)){
-      openNegotiation(choice(state.clients));
-      return; // open negotiation immediately this week
-    }
-
-    // time
-    state.week++;
-    if(state.week>weeksPerSeason){
-      state.week=1; state.season++;
-      pushNews("休賽期開始","自由球員與交易視窗已開啟。");
-    }
-    renderAll();
-  }
-
-  // ---------------- Actions ----------------
-  function recommendPlayer(p){
-    const boost = (5 + state.employees.negotiator*2 + Math.floor(state.rep/100));
-    if(chance(0.55)){
-      const raise = Math.floor(p.salaryPerWeek * (0.05 + boost/100));
-      p.salaryPerWeek += raise;
-      addFinance(`${p.name} 代言/續約成功（提成）`, Math.floor(raise*0.5));
-      pushNews("推薦成功", `${p.name} 的商業價值提升，薪資增加 ${moneyFmt(raise)}。`);
-    }else{
-      pushNews("推薦失敗", `${p.name} 的談判破局，下次再試。`);
-    }
-    renderClients();
-  }
-  function renewContract(p){
-    const years = rand(2,4);
-    const baseRaise = Math.floor(p.salaryPerWeek * (0.1 + state.employees.negotiator*0.03));
-    const ok = chance(0.6 + state.rep/1000);
-    if(ok){
-      p.salaryPerWeek += baseRaise;
-      p.contractEndWeek += years*weeksPerSeason;
-      addFinance(`${p.name} 續約佣金`, Math.floor(baseRaise*0.6));
-      pushNews("續約成功", `${p.name} 與 ${p.club} 完成 ${years} 年續約。`);
-    }else{
-      pushNews("續約失敗", `${p.name} 對續約條件不滿。`);
-    }
-    renderClients();
-  }
-
-  // ---------------- Navigation ----------------
-  function show(name){ $$(".screen").forEach(s=>s.classList.remove("active")); $("#screen-"+name).classList.add("active"); }
-
-  // Tile nav
-  $$(".tile").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const target = btn.dataset.screen;
-      show(target);
-      if(target==="office") renderOffice();
-      if(target==="clients") renderClients();
-      if(target==="staff") renderStaff();
-      if(target==="academy") renderAcademy();
-      if(target==="shop") renderShop();
-      if(target==="ranking") renderRanking();
-      if(target==="finance") renderFinance();
-      if(target==="news") renderNews();
-      if(target==="achievements") renderAchievements();
-    });
+    // champion
+    const champ = teams.slice().sort((x,y)=>y.wins-x.wins)[0];
+    champ.champYears.push(STATE.year);
+    if(!STATE.champions[STATE.year]) STATE.champions[STATE.year]={};
+    STATE.champions[STATE.year][leagueKey]=champ.name;
+    pushNews(`🏆 ${getLeague(leagueKey).name} 本年度冠軍：<b>${champ.name}</b>`);
   });
-  // back buttons
-  $$(".back").forEach(b=> b.addEventListener("click", ()=> show("main")) );
+}
 
-  // Office controls
-  $("#btnOfficeUp").onclick = ()=>{
-    const cost = 250000 * state.office.level;
-    if(state.money<cost){ alert("資金不足"); return; }
-    state.office.level++; addFinance("升級辦公室", -cost); renderOffice(); renderMain();
-  };
-  $("#btnOfficeDown").onclick = ()=>{
-    if(state.office.level<=1) return;
-    state.office.level--; addFinance("縮編辦公室退款", 120000); renderOffice(); renderMain();
-  };
+function groupBy(arr,fn){
+  return arr.reduce((acc,x)=>{const k=fn(x);(acc[k]=acc[k]||[]).push(x);return acc;},{});
+}
 
-  // Academy controls
-  $("#btnAcademyUp").onclick = ()=>{
-    const cost = 120000 * state.academy.level;
-    if(state.money<cost){ alert("資金不足"); return; }
-    state.academy.level++; addFinance("升級學院", -cost); renderAcademy(); renderMain();
-  };
-  $("#btnAcademyDown").onclick = ()=>{
-    if(state.academy.level<=1) return;
-    state.academy.level--; addFinance("縮編學院退款", 60000); renderAcademy(); renderMain();
-  };
+function getLeague(key){ return LEAGUES.find(l=>l.key===key); }
+function getTeamByName(name){ return STATE.teams.find(t=>t.name===name); }
 
-  // Staff hire
-  // (handled in renderStaff -> data-up buttons)
+/* Initial setup */
+function init(){
+  initTeams();
+  // generate market
+  for(let i=0;i<180;i++) STATE.freePlayers.push(createPlayer());
+  // give starter clients
+  for(let i=0;i<8;i++){ const p=createPlayer(); STATE.clients.push(p); }
+  render();
+}
 
-  // Shop tabs
-  $$(".tab").forEach(t=> t.addEventListener("click", ()=>{ activeTab = t.dataset.tab; renderShop(); }));
+function pushNews(html){ STATE.news.unshift({id:cryptoRandomId(), ts: Date.now(), html}); }
 
-  // Clients buttons
-  $("#btnRecommendAll").onclick = ()=> state.clients.forEach(recommendPlayer);
-  $("#btnRecommendSome").onclick = ()=> state.clients.filter(()=>chance(0.4)).forEach(recommendPlayer);
-  $("#btnFindProspect").onclick = ()=>{
-    const p = createPlayer(Date.now());
-    p.club = "自由球員"; state.prospects.push(p);
-    pushNews("球探報告", `發現潛力新秀：${p.name}（OVR${p.ovr}，${p.position}）`);
-    renderAcademy();
-  };
+/* UI Renders */
+const VIEWS = {
+  home(){
+    const kpis = `
+      <div class="kpi">
+        <div class="box"><div>現有客戶</div><h2>${STATE.clients.length}</h2><div class="note">已簽約的球員</div></div>
+        <div class="box"><div>自由市場</div><h2>${STATE.freePlayers.length}</h2><div class="note">可嘗試簽下</div></div>
+        <div class="box"><div>員工等級</div><h2>球探 ${STATE.staff.scout} / 商務 ${STATE.staff.biz} / 教練 ${STATE.staff.coach}</h2></div>
+        <div class="box"><div>學院</div><h2>Lv.${STATE.academy.level}</h2><div class="note">來源：高中/大學/海外</div></div>
+      </div>`;
+    return `<section class="panel">
+      <h1>總覽</h1>
+      ${kpis}
+      <div class="grid grid-2">
+        <div class="panel"><h2>最新新聞</h2>${renderNews(5)}</div>
+        <div class="panel"><h2>本年各聯盟冠軍</h2>${renderChampions(STATE.year)}</div>
+      </div>
+    </section>`;
+  },
 
-  // Player actions
-  $("#btnPitch").onclick = ()=> currentPlayer && recommendPlayer(currentPlayer);
-  $("#btnRenew").onclick = ()=> currentPlayer && renewContract(currentPlayer);
-  $("#btnTrade").onclick = ()=> currentPlayer && openNegotiation(currentPlayer);
-  $("#btnRelease").onclick = ()=>{
-    if(!currentPlayer) return;
-    state.clients = state.clients.filter(x=>x.id!==currentPlayer.id);
-    addFinance(`釋出 ${currentPlayer.name}`, 0);
-    show("clients"); renderClients();
-  };
+  clients(){
+    const tabs = subTabs("clients",["清單","名單","陣容","輪值"]);
+    let body = "";
+    const view = getSubTab("clients");
+    if(view==="清單"){
+      body = renderClientList();
+    }else if(view==="名單"){
+      body = renderRosterBuilder();
+    }else if(view==="陣容"){
+      body = `<div class="note">（示意）依照球員打序與守位輸出；未來可與球隊簽約關聯。</div>`;
+    }else{
+      body = `<div class="note">（示意）投手先發與牛棚排序。</div>`;
+    }
+    return `<section class="panel">
+      <h1>客戶</h1>${tabs}${body}
+    </section>`;
+  },
 
-  // Negotiation actions
-  $("#offerRange").oninput = (e)=> $("#offerValText").textContent = moneyFmt(+e.target.value);
-  $("#btnOfferAccept").onclick = acceptOffer;
-  $("#btnOfferCounter").onclick = counterOffer;
-  $("#btnOfferReject").onclick = ()=>{ pushNews("你已拒絕報價","等待下一次機會。"); show("clients"); };
+  teams(){
+    const groups = groupBy(STATE.teams, t=>t.league);
+    const html = Object.entries(groups).map(([league, arr])=>{
+      const lg = getLeague(league);
+      const rows = arr.map(t=>`
+        <tr>
+          <td>${t.name}</td>
+          <td><span class="badge league-tier-${t.tier}">Tier ${t.tier}</span></td>
+          <td>${lg.name}</td>
+          <td>${t.wins}-${t.losses}</td>
+          <td>${t.stats.AVG.toFixed(3)}</td>
+          <td>${t.stats.OPS.toFixed(3)}</td>
+          <td>${t.stats.KBB.toFixed(2)}</td>
+          <td>${t.stats.ERA.toFixed(2)}</td>
+          <td>${t.stats.WHIP.toFixed(3)}</td>
+          <td><button class="btn" onclick="uiViewTeam('${t.id}')">詳細</button></td>
+        </tr>`).join("");
+      return `<div class="panel"><h2>${lg.name}</h2>
+        <table><thead><tr><th>球隊</th><th>層級</th><th>聯盟</th><th>戰績</th><th>AVG</th><th>OPS</th><th>K/BB</th><th>ERA</th><th>WHIP</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    }).join("");
+    return `<section class="grid">${html}</section>`;
+  },
 
-  // Finance buttons
-  $("#btnFinanceLog").onclick = ()=>{
-    const years = {};
-    state.finance.forEach(f=>{
-      const y = +f.ts.split("W")[0]; years[y]=years[y]||{income:0,expense:0};
-      if(f.delta>0) years[y].income+=f.delta; else years[y].expense+=f.delta;
-    });
-    const lines = Object.entries(years).sort((a,b)=>a[0]-b[0]).map(([y,v])=>`${y} 收入 ${moneyFmt(v.income)}   支出 ${moneyFmt(v.expense)}   結存 ${moneyFmt(v.income+v.expense)}`);
-    $("#financeLog").textContent = lines.join("\\n") + "\\n\\n" + state.finance.slice(0,200).map(f=>`${f.ts}  ${f.kind}  ${(f.delta>=0?"+":"")}${moneyFmt(f.delta)}`).join("\\n");
-  };
-  $("#btnFinanceGain").onclick = ()=> addFinance("測試收入", rand(10_000, 100_000));
+  finance(){
+    const tabs = subTabs("finance",["總覽","記錄","明細"]);
+    let body="";
+    const view=getSubTab("finance");
+    if(view==="總覽") body = renderFinanceSummary();
+    if(view==="記錄") body = renderFinanceRecords();
+    if(view==="明細") body = renderLedger();
+    return `<section class="panel"><h1>財務</h1>${tabs}${body}</section>`;
+  },
 
-  // Settings
-  $("#btnSave").onclick = save;
-  $("#btnLoad").onclick = load;
-  $("#btnNewGame").onclick = ()=>{ if(confirm("確定開始新遊戲？當前進度將覆蓋。")) newGame(); };
+  shop(){
+    return `<section class="panel">
+      <h1>商店</h1>
+      ${renderShop()}
+    </section>`;
+  },
 
-  // Next week
-  $("#nextWeek").onclick = nextWeek;
+  staff(){
+    return `<section class="panel"><h1>員工</h1>${renderStaff()}</section>`;
+  },
 
-  // Init
-  newGame();
-  renderAll();
-  function renderAll(){
-    renderTop(); renderMain(); renderOffice(); renderAcademy(); renderClients(); renderStaff(); renderShop(); renderRanking(); renderFinance(); renderNews(); renderAchievements();
+  academy(){
+    return `<section class="panel"><h1>學院 / 農場</h1>${renderAcademy()}</section>`;
+  },
+
+  season(){
+    const rows = Object.entries(STATE.champions).sort((a,b)=>b[0]-a[0]).map(([y,obj])=>{
+      const cells = LEAGUES.map(l=>`<td>${obj[l.key]||"-"}</td>`).join("");
+      return `<tr><td>${y}</td>${cells}</tr>`;
+    }).join("");
+    return `<section class="panel">
+      <h1>賽季概覽</h1>
+      <table><thead><tr><th>年度</th>${LEAGUES.map(l=>`<th>${l.key}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">每年結算會自動計算各聯盟冠軍。</div>
+    </section>`;
+  },
+
+  news(){
+    return `<section class="panel"><h1>新聞</h1>${renderNews()}</section>`;
+  },
+
+  settings(){
+    return `<section class="panel"><h1>設定與存檔</h1>
+      <div class="grid grid-2">
+        <div class="panel">
+          <h2>儲存/載入</h2>
+          <button class="btn" onclick="saveGame()">儲存到本機</button>
+          <button class="btn" onclick="loadGame()">載入本機存檔</button>
+          <button class="btn danger" onclick="resetGame()">重置遊戲</button>
+        </div>
+        <div class="panel">
+          <h2>偏好</h2>
+          <label>每季週數 <input class="input" id="weeksPerSeason" type="number" value="52" min="10" max="60"/></label>
+          <div class="note">目前用 52 週制。</div>
+        </div>
+      </div>
+    </section>`;
   }
-})();
+};
+
+/* Sub tab cache */
+const _subtab = {};
+function subTabs(key, items){
+  const active = _subtab[key] || items[0];
+  return `<div class="subtabs">`+
+    items.map(it=>`<button class="${it===active?'active':''}" onclick="setSubTab('${key}','${it}')">${it}</button>`).join("")+
+  `</div>`;
+}
+function setSubTab(key, val){ _subtab[key]=val; render(); }
+function getSubTab(key){ return _subtab[key]; }
+
+/* Client list with Position + Bat/Pitch ability */
+function renderClientList(){
+  const rows = STATE.clients.map(p=>{
+    const bat = Math.round((p.batting.vsR+p.batting.vsL+p.batting.power+p.batting.eye+p.batting.clutch)/5);
+    const pit = Math.round((p.pitching.fb+p.pitching.slider+p.pitching.curve+p.pitching.change+p.pitching.control)/5);
+    return `<tr>
+      <td>${p.name}</td>
+      <td>${p.pos} / ${p.bats}・${p.throws}</td>
+      <td>${bat}</td><td>${pit}</td>
+      <td>${p.ovr}</td>
+      <td>${p.contract.team? p.contract.team : "-"}</td>
+      <td>${fmtMoney(p.contract.weekly)}/週</td>
+      <td>
+        <button class="btn" onclick="uiOffer('${p.id}')">談判</button>
+        <button class="btn" onclick="uiEndorse('${p.id}')">代言</button>
+      </td>
+    </tr>`;
+  }).join("");
+  return `<table><thead><tr><th>姓名</th><th>位置/投打</th><th>打擊</th><th>投球</th><th>OVR</th><th>球隊</th><th>週薪</th><th>操作</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="note">清單欄位已改成「位置＋投打能力」；同時顯示打擊/投球能力與 OVR。</div>`;
+}
+
+/* Offer & endorsements */
+function uiOffer(pid){
+  const p = STATE.clients.find(x=>x.id===pid);
+  // pick a target team same tier or above for demo
+  const target = choice(STATE.teams.filter(t=>!p.contract.team || t.name!==p.contract.team));
+  const chance = signChance(p,target);
+  const demand = Math.round(p.ovr*12_000 + target.tier*50_000);
+  const html = `<div class="panel">
+    <h2>與 ${target.name} 談判</h2>
+    <p>預估機率：<b>${Math.round(chance*100)}%</b>（受聯盟層級、球員能力、你的知名度影響）</p>
+    <label>開價每週薪資 <input id="offerWeekly" class="input" type="number" value="${demand}"/></label>
+    <button class="btn ok" onclick="doOffer('${pid}','${target.id}')">送出報價</button>
+  </div>`;
+  showModal(html);
+}
+function doOffer(pid, tid){
+  const p = STATE.clients.find(x=>x.id===pid);
+  const t = STATE.teams.find(x=>x.id===tid);
+  const weekly = Number(document.getElementById("offerWeekly").value||0);
+  const prob = signChance(p,t) * clamp((weekly)/(p.ovr*12_000 + t.tier*50_000), 0.6, 1.5);
+  if(Math.random() < prob){
+    // success
+    p.contract.team = t.name;
+    p.contract.weekly = weekly;
+    // roster move
+    t.roster.push(p);
+    // finances: salary paid by team, agent gets commission from salary and transfers/endorsements
+    const salaryCut = weekly * 0.10; // 10% 提成（薪資/代言）
+    STATE.cash += salaryCut;
+    pushNews(`🖊️ ${p.name} 與 <b>${t.name}</b> 簽下合約（週薪 ${fmtMoney(weekly)}）。你獲得代理提成 ${fmtMoney(salaryCut)}。`);
+  }else{
+    pushNews(`❌ ${t.name} 拒絕 ${p.name} 的條件，建議提高週薪或尋找中低層級球隊。`);
+  }
+  hideModal(); render();
+}
+
+function uiEndorse(pid){
+  const p = STATE.clients.find(x=>x.id===pid);
+  const fee = Math.round(p.ovr * (50_000 + Math.random()*50_000) * (1+STATE.staff.biz*0.05));
+  const cut = Math.round(fee*0.20);
+  STATE.cash += cut;
+  STATE.rep += Math.round(3 + p.ovr/40);
+  pushNews(`📣 為 ${p.name} 接到代言案，酬勞 ${fmtMoney(fee)}（你的抽成 ${fmtMoney(cut)}）。`);
+  render();
+}
+
+/* Roster builder (assign clients to target teams by probability) */
+function renderRosterBuilder(){
+  const rows = STATE.clients.map(p=>{
+    return `<div class="card">
+      <b>${p.name}</b> · OVR ${p.ovr} · ${p.pos}・${p.bats}/${p.throws}<br/>
+      <div class="progress"><span style="width:${p.ovr}%"></span></div>
+      <div style="margin-top:8px">
+        <select id="sel-${p.id}" class="input">`+STATE.teams.map(t=>`<option value="${t.id}">${t.name}（Tier${t.tier}）</option>`).join("")+`</select>
+        <button class="btn" onclick="tryAssign('${p.id}')">嘗試簽入</button>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="cards">${rows}</div>`;
+}
+function tryAssign(pid){
+  const p = STATE.clients.find(x=>x.id===pid);
+  const sel = document.getElementById("sel-"+pid);
+  const t = STATE.teams.find(x=>x.id===sel.value);
+  const ch = signChance(p,t);
+  if(Math.random()<ch){
+    p.contract.team = t.name;
+    t.roster.push(p);
+    pushNews(`✅ ${p.name} 成功加入 ${t.name}（Tier ${t.tier})。`);
+  }else{
+    pushNews(`🧩 ${t.name} 評估 ${p.name} 尚未達到需求，建議提高能力或從較低層級起步。`);
+  }
+  render();
+}
+
+/* Finance */
+function renderFinanceSummary(){
+  const income = calcIncome();
+  const spend = calcSpend();
+  const net = income.total - spend.total;
+  return `<div class="grid grid-3">
+    <div class="panel">
+      <h2>收入</h2>
+      <table><tbody>
+        <tr><td>薪資提成</td><td>${fmtMoney(income.salary)}</td></tr>
+        <tr><td>交易抽成</td><td>${fmtMoney(income.transfer)}</td></tr>
+        <tr><td>代言/贊助</td><td>${fmtMoney(income.endorse)}</td></tr>
+        <tr><th>合計</th><th>${fmtMoney(income.total)}</th></tr>
+      </tbody></table>
+    </div>
+    <div class="panel">
+      <h2>支出</h2>
+      <table><tbody>
+        <tr><td>員工薪資</td><td>${fmtMoney(spend.staff)}</td></tr>
+        <tr><td>建築/運營</td><td>${fmtMoney(spend.ops)}</td></tr>
+        <tr><td>個人/商店</td><td>${fmtMoney(spend.shop)}</td></tr>
+        <tr><th>合計</th><th>${fmtMoney(spend.total)}</th></tr>
+      </tbody></table>
+    </div>
+    <div class="panel">
+      <h2>結存</h2>
+      <div style="font-size:28px;font-weight:800;color:${net>=0?'#7dd957':'#ff6b6b'}">${fmtMoney(net)}</div>
+      <div class="note">佣金模型同時包含：薪資/代言提成 + 交易抽成。</div>
+    </div>
+  </div>`;
+}
+
+const LEDGER = []; // push {ts, type, amt, note}
+function addLedger(type, amt, note){ LEDGER.push({ts: Date.now(), type, amt, note}); }
+function renderFinanceRecords(){
+  const rows = Object.entries(STATE.champions).slice(-8).map(([y,obj])=>{
+    const list = Object.entries(obj).map(([lg,tm])=>`${lg}: ${tm}`).join(" · ");
+    return `<tr><td>${y}</td><td>${list}</td></tr>`;
+  }).join("");
+  return `<div class="panel"><h2>年度冠軍紀錄</h2>
+    <table><thead><tr><th>年度</th><th>各聯盟冠軍</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderLedger(){
+  const rows = LEDGER.slice(-200).reverse().map(x=>`<tr><td>${new Date(x.ts).toLocaleString()}</td><td>${x.type}</td><td>${fmtMoney(x.amt)}</td><td>${x.note||""}</td></tr>`).join("");
+  return `<table><thead><tr><th>時間</th><th>類別</th><th>金額</th><th>說明</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function calcIncome(){
+  const salary = STATE.clients.filter(p=>p.contract.team).reduce((a,p)=>a+p.contract.weekly*0.10,0);
+  const transfer = LEDGER.filter(x=>x.type==='交易抽成').reduce((a,x)=>a+x.amt,0)/52;
+  const endorse = LEDGER.filter(x=>x.type==='代言抽成').reduce((a,x)=>a+x.amt,0)/52;
+  return {salary, transfer, endorse, total: salary+transfer+endorse};
+}
+function calcSpend(){
+  const staff = (STATE.staff.scout+STATE.staff.biz+STATE.staff.coach)*2_000;
+  const ops = STATE.academy.level*1_000;
+  const shop = 0;
+  return {staff, ops, shop, total: staff+ops+shop};
+}
+
+/* Shop (3 tabs) */
+function renderShop(){
+  return `<div class="subtabs">
+    <button class="active">商品</button><button>交通工具</button><button>業務</button>
+  </div>
+  <div class="grid grid-3">
+    ${shopItem("遊戲機",1500,"微幅提升士氣/知名度")}
+    ${shopItem("名牌服裝",10000,"提高商務談判成效 +1%")}
+    ${shopItem("撞球桌",8000,"小幅放鬆，提升士氣")}
+    ${shopItem("酒窖",30000,"每季舉辦酒會提升人脈")}
+    ${shopItem("套房",120000,"固定提高知名度，偶爾觸發新聞")}
+    ${shopItem("古董筆",25000,"提高簽字儀式格調（+粉）")}
+    ${shopItem("公寓",240000,"每週房租收入 1,500")}
+    ${shopItem("賽馬",500000,"小機率帶來額外獎金")}
+  </div>`;
+}
+function shopItem(name, price, desc){
+  return `<div class="card">
+    <h3>${name}</h3>
+    <div class="note">${desc}</div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      <b>${fmtMoney(price)}</b>
+      <button class="btn" onclick="buy('${name}',${price})">購買</button>
+    </div>
+  </div>`;
+}
+function buy(name, price){
+  if(STATE.cash<price){ alert("資金不足"); return;}
+  STATE.cash-=price;
+  addLedger("商店支出",-price, name);
+  pushNews(`🛒 購買 ${name} 花費 ${fmtMoney(price)}。`);
+  if(name==="公寓"){ addLedger("被動收入",1500,"公寓房租"); }
+  render();
+}
+
+/* Staff */
+function renderStaff(){
+  const row = (k, label)=>`<tr><td>${label}</td><td>Lv.${STATE.staff[k]}</td><td><button class="btn" onclick="lvl('${k}')">升級</button></td></tr>`;
+  return `<table><tbody>
+    ${row('scout','球探')} ${row('biz','商務')} ${row('coach','教練')}
+  </tbody></table>`;
+}
+function lvl(k){
+  const cost = 20_000 * (STATE.staff[k]+1);
+  if(STATE.cash<cost){ alert("資金不足"); return;}
+  STATE.cash-=cost; STATE.staff[k]++;
+  addLedger("員工薪資",-cost,"升級 "+k);
+  render();
+}
+
+/* Academy with sources HS/College/Overseas */
+function renderAcademy(){
+  const s = STATE.academy.sources;
+  return `<div class="grid grid-2">
+    <div class="panel">
+      <h2>等級與名額</h2>
+      <div>等級：Lv.${STATE.academy.level}（營運 ${fmtMoney(STATE.academy.level*1000)}/週）</div>
+      <div>每年畢業：${STATE.academy.level+1} 名</div>
+      <button class="btn" onclick="STATE.academy.level++; render()">升級</button>
+    </div>
+    <div class="panel">
+      <h2>來源</h2>
+      <label><input type="checkbox" ${s.HS?'checked':''} onchange="toggleSrc('HS',this.checked)"/> 高中</label><br/>
+      <label><input type="checkbox" ${s.College?'checked':''} onchange="toggleSrc('College',this.checked)"/> 大學</label><br/>
+      <label><input type="checkbox" ${s.Overseas?'checked':''} onchange="toggleSrc('Overseas',this.checked)"/> 海外</label>
+      <div class="note">來源會影響潛力分佈：高中波動大；大學較穩定；海外看地區與球探等級。</div>
+    </div>
+  </div>`;
+}
+function toggleSrc(k,on){ STATE.academy.sources[k]=on; render(); }
+
+/* News */
+function renderNews(limit=null){
+  const list = (limit?STATE.news.slice(0,limit):STATE.news).map(n=>`<div class="card"><div class="note">${new Date(n.ts).toLocaleString()}</div><div>${n.html}</div></div>`).join("");
+  return `<div class="cards">${list||'<div class="note">尚無新聞</div>'}</div>`;
+}
+function renderChampions(y){
+  const obj = STATE.champions[y]||{};
+  const rows = LEAGUES.map(l=>`<tr><td>${l.name}</td><td>${obj[l.key]||"-"}</td></tr>`).join("");
+  return `<table><thead><tr><th>聯盟</th><th>冠軍</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* View team modal */
+function uiViewTeam(id){
+  const t = STATE.teams.find(x=>x.id===id);
+  const rows = t.roster.map(p=>`<tr><td>${p.name}</td><td>${p.pos}</td><td>${p.ovr}</td></tr>`).join("");
+  const html = `<div class="panel">
+    <h2>${t.name} · ${getLeague(t.league).name}</h2>
+    <div>戰績 ${t.wins}-${t.losses} | AVG ${t.stats.AVG.toFixed(3)} | OPS ${t.stats.OPS.toFixed(3)} | ERA ${t.stats.ERA.toFixed(2)}</div>
+    <h3>名單</h3>
+    <table><thead><tr><th>球員</th><th>位置</th><th>OVR</th></tr></thead><tbody>${rows}</tbody></table>
+  </div>`;
+  showModal(html);
+}
+
+/* Weekly tick */
+let WEEKS_PER_SEASON = 52;
+function nextWeek(){
+  // weekly income/expenses
+  const inc = calcIncome(); const spend = calcSpend();
+  const net = inc.total - spend.total;
+  STATE.cash += net;
+  addLedger("週結算", net, "佣金與支出自動結算");
+  // random endorse chance
+  if(Math.random()<0.35 && STATE.clients.length){
+    uiEndorse(choice(STATE.clients).id);
+  }
+  // progress
+  STATE.week++;
+  if(STATE.week>WEEKS_PER_SEASON){
+    // end-season
+    STATE.week=1; STATE.year++;
+    simulateSeason();
+    // academy graduates
+    const cnt = STATE.academy.level+1;
+    for(let i=0;i<cnt;i++){
+      const src = choice(Object.entries(STATE.academy.sources).filter(x=>x[1]).map(x=>x[0])) || "HS";
+      const grad = createPlayerBySource(src);
+      STATE.freePlayers.push(grad);
+      pushNews(`🎓 ${src} 畢業生 ${grad.name} 進入市場（OVR ${grad.ovr}）。`);
+    }
+  }
+  render();
+}
+
+function createPlayerBySource(src){
+  let o = {HS:[35,95], College:[45,88], Overseas:[40,92]}[src] || [40,90];
+  const p = createPlayer();
+  p.ovr = Math.round(rand(o[0],o[1]));
+  return p;
+}
+
+/* Modal */
+let _modal=null;
+function showModal(html){
+  hideModal();
+  _modal = document.createElement('div');
+  _modal.className="modal";
+  _modal.innerHTML = `<div class="modal-bg" onclick="hideModal()"></div><div class="modal-card">${html}</div>`;
+  document.body.appendChild(_modal);
+}
+function hideModal(){ if(_modal){_modal.remove(); _modal=null;} }
+const modalCSS = document.createElement('style');
+modalCSS.textContent = `.modal{position:fixed;inset:0;display:grid;place-items:center;z-index:40}
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.modal-card{position:relative;max-width:860px;width:92%;max-height:85vh;overflow:auto;background:#0f1832;border:1px solid #345;box-shadow:0 20px 60px rgba(0,0,0,.5);border-radius:14px;padding:16px}`;
+document.head.appendChild(modalCSS);
+
+/* Save/Load */
+function saveGame(){
+  localStorage.setItem("BAM_SAVE", JSON.stringify(STATE));
+  alert("已儲存");
+}
+function loadGame(){
+  const raw = localStorage.getItem("BAM_SAVE");
+  if(!raw) return alert("沒有存檔");
+  Object.assign(STATE, JSON.parse(raw));
+  render();
+}
+function resetGame(){
+  if(!confirm("確定要重置？")) return;
+  location.reload();
+}
+
+/* Render root */
+function render(){
+  document.getElementById("meta-year").textContent = STATE.year+" 年";
+  document.getElementById("meta-week").textContent = "第 "+STATE.week+" 週";
+  document.getElementById("meta-rep").textContent = STATE.rep;
+  document.getElementById("meta-cash").textContent = fmtMoney(STATE.cash);
+  const container = document.getElementById("view-container");
+  const active = document.querySelector(".nav-btn.active")?.dataset.view || "home";
+  container.innerHTML = VIEWS[active]();
+}
+document.addEventListener("click",(e)=>{
+  const btn = e.target.closest(".nav-btn");
+  if(btn){
+    document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    render();
+  }
+});
+document.getElementById("btn-next").addEventListener("click", nextWeek);
+
+/* Boot */
+init();
+simulateSeason(); // prepopulate first champs
+render();

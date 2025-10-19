@@ -1,204 +1,44 @@
-
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Baseball Agent — v0.2 (Soccer x GOAT)</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Baseball Agent Manager — SoccerXGOAT 版</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div id="app">
-    <header class="topbar">
-      <div class="money" id="money"></div>
-      <div class="center">
-        <span id="seasonWeek"></span>
-      </div>
-      <div class="rep">
-        知名度 <span id="rep"></span>
-      </div>
-    </header>
+  <header class="topbar">
+    <div class="brand">⚾️ Baseball Agent Manager</div>
+    <nav class="nav">
+      <button class="nav-btn" data-view="home">主頁</button>
+      <button class="nav-btn" data-view="clients">客戶</button>
+      <button class="nav-btn" data-view="teams">球隊</button>
+      <button class="nav-btn" data-view="finance">財務</button>
+      <button class="nav-btn" data-view="shop">商店</button>
+      <button class="nav-btn" data-view="staff">員工</button>
+      <button class="nav-btn" data-view="academy">學院</button>
+      <button class="nav-btn" data-view="season">賽季</button>
+      <button class="nav-btn" data-view="news">新聞</button>
+      <button class="nav-btn" data-view="settings">設定</button>
+    </nav>
+    <div class="meta">
+      <span id="meta-year"></span>
+      <span id="meta-week"></span>
+      <span>| 知名度 <b id="meta-rep">0</b></span>
+      <span>| 資金 <b id="meta-cash">$0</b></span>
+      <button id="btn-next" class="primary">進入下週</button>
+    </div>
+  </header>
 
-    <main id="screen-main" class="screen screen-main active">
-      <h1 class="brand">BASEBALL <span>AGENT</span></h1>
-      <div class="grid">
-        <button class="tile" data-screen="office">辦公室<br/><small id="officeLevel"></small></button>
-        <button class="tile" data-screen="clients">客戶（球員）<br/><small id="clientsCount"></small></button>
-        <button class="tile" data-screen="staff">員工<br/><small id="staffSummary"></small></button>
-        <button class="tile" data-screen="academy">學院/農場<br/><small id="academyLevel"></small></button>
-        <button class="tile" data-screen="shop">商店<br/><small id="shopHint"></small></button>
-        <button class="tile" data-screen="news">新聞</button>
-        <button class="tile" data-screen="ranking">經紀公司排名</button>
-        <button class="tile" data-screen="finance">財務</button>
-        <button class="tile" data-screen="achievements">成就</button>
-        <button class="tile" data-screen="settings">設定</button>
-      </div>
-      <div class="hint">點擊右下角的「進入下週」推進時間並觸發事件。</div>
-    </main>
+  <main id="view-container">
+    <!-- will be filled by JS renderers -->
+  </main>
 
-    <!-- 辦公室 -->
-    <section id="screen-office" class="screen">
-      <h2>辦公室</h2>
-      <div class="card">
-        <p>等級：<b id="officeLvl"></b>　容量：<b id="officeCap"></b> 客戶</p>
-        <p>每週營運成本：<b id="officeCost"></b></p>
-        <div class="row">
-          <button id="btnOfficeDown">－</button>
-          <button id="btnOfficeUp">＋ 升級（<span id="officeUpCost"></span>）</button>
-        </div>
-      </div>
-      <button class="back">返回</button>
-    </section>
+  <footer class="foot">
+    <small>v0.9 • 本地原型，離線可玩。儲存於瀏覽器 LocalStorage。</small>
+  </footer>
 
-    <!-- 客戶清單 -->
-    <section id="screen-clients" class="screen">
-      <h2>客戶（球員）</h2>
-      <div class="table-wrapper">
-        <table id="clientsTable">
-          <thead>
-            <tr>
-              <th>姓名/球會</th><th>位置</th><th>OVR</th><th>年齡</th><th>技能</th><th>薪資/週</th><th>合約</th><th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="row">
-        <button id="btnRecommendAll">推薦所有球員</button>
-        <button id="btnRecommendSome">推薦一些球員</button>
-        <button id="btnFindProspect">球探找新人</button>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 球員詳情 -->
-    <section id="screen-player" class="screen">
-      <h2 id="pName"></h2>
-      <div class="card" id="pInfo"></div>
-      <div class="row">
-        <canvas id="pOVR" width="250" height="250"></canvas>
-        <div class="card grow">
-          <div id="pSkills"></div>
-        </div>
-      </div>
-      <div class="row">
-        <button id="btnPitch">推薦/代言</button>
-        <button id="btnRenew">更新合約</button>
-        <button id="btnTrade">轉隊談判</button>
-        <button id="btnRelease">釋出</button>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 轉隊談判 -->
-    <section id="screen-negotiation" class="screen">
-      <h2 id="negTitle">交易談判</h2>
-      <div class="card" id="negBody"></div>
-      <div class="card">
-        <label>轉會費：<b id="offerValText"></b></label>
-        <input id="offerRange" type="range" min="1000000" max="50000000" step="250000" />
-      </div>
-      <div class="row">
-        <button id="btnOfferReject">拒絕</button>
-        <button id="btnOfferCounter">反出價</button>
-        <button id="btnOfferAccept">接受</button>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 員工 -->
-    <section id="screen-staff" class="screen">
-      <h2>員工</h2>
-      <div class="staff-list" id="staffList"></div>
-      <div class="row">
-        <button data-hire="scout">尋找球探</button>
-        <button data-hire="negotiator">尋找商務經理</button>
-        <button data-hire="trainer">尋找教練</button>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 學院 -->
-    <section id="screen-academy" class="screen">
-      <h2>學院 / 農場系統</h2>
-      <div class="card">
-        <p>等級：<b id="academyLvl"></b>（每年畢業生：<b id="academyGrad"></b>）</p>
-        <p>每週營運成本：<b id="academyCost"></b></p>
-        <div class="row">
-          <button id="btnAcademyDown">－</button>
-          <button id="btnAcademyUp">＋ 升級（<span id="academyUpCost"></span>）</button>
-        </div>
-      </div>
-      <div class="card">
-        <h3>可簽約的新秀</h3>
-        <ul id="prospects"></ul>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 商店 -->
-    <section id="screen-shop" class="screen">
-      <h2>商店</h2>
-      <div class="tabs">
-        <button class="tab active" data-tab="goods">商品</button>
-        <button class="tab" data-tab="transport">交通工具</button>
-        <button class="tab" data-tab="biz">業務</button>
-      </div>
-      <div id="shopList" class="shop-list"></div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 財務 -->
-    <section id="screen-finance" class="screen">
-      <h2>財務</h2>
-      <div class="card" id="financeTotals"></div>
-      <div class="row">
-        <button id="btnFinanceLog">記錄</button>
-        <button id="btnFinanceGain">獲得金額（測試）</button>
-      </div>
-      <div id="financeLog" class="mono tall"></div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 排名 -->
-    <section id="screen-ranking" class="screen">
-      <h2>經紀公司排名（本季收益）</h2>
-      <div class="table-wrapper">
-        <table id="rankTable">
-          <thead><tr><th>#</th><th>經紀公司</th><th>收益</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 新聞 -->
-    <section id="screen-news" class="screen">
-      <h2>新聞</h2>
-      <ul id="newsList" class="news-list"></ul>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 成就 -->
-    <section id="screen-achievements" class="screen">
-      <h2>成就</h2>
-      <ul id="achList" class="ach-list"></ul>
-      <button class="back">返回</button>
-    </section>
-
-    <!-- 設定 -->
-    <section id="screen-settings" class="screen">
-      <h2>設定 / 存檔</h2>
-      <div class="row">
-        <button id="btnSave">儲存</button>
-        <button id="btnLoad">載入</button>
-        <button id="btnNewGame">開始新遊戲</button>
-      </div>
-      <button class="back">返回</button>
-    </section>
-
-    <button id="nextWeek" class="nextweek">進入下週</button>
-  </div>
+  <script src="data/leagues.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
