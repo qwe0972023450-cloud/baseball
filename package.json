@@ -1,6 +1,6 @@
 {
-  "name": "bbtycoon-v7",
-  "version": "7.0.0",
+  "name": "bbtycoon-v9",
+  "version": "9.0.0",
   "private": true,
   "engines": {
     "node": ">=18.x"
