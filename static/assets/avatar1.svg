@@ -1,1 +1,1 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='#123456'/><circle cx='128' cy='96' r='48' fill='#ffd27f'/><text x='128' y='220' font-size='20' text-anchor='middle' fill='#123456' font-family='sans-serif'>Player</text></svg>
+<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='24' fill='#193a5c'/><circle cx='128' cy='96' r='48' fill='#ffd27f'/><text x='128' y='220' font-size='18' text-anchor='middle' fill='#193a5c'>Player</text></svg>
