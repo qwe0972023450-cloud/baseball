@@ -1,0 +1,40 @@
+
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,"Noto Sans TC",sans-serif;background:#0b6f19 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 300%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22><stop stop-color=%22%230d8a1f%22/><stop offset=%221%22 stop-color=%22%230b6f19%22/></linearGradient></defs><rect width=%22300%22 height=%22300%22 fill=%22url(%23g)%22/></svg>') no-repeat center/cover;color:#fff;min-height:100vh}
+#app{max-width:460px;margin:0 auto;position:relative;padding-bottom:88px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(40,0,0,.6);backdrop-filter: blur(2px);position:sticky;top:0;z-index:2}
+.topbar .money,.rep{font-weight:700}
+.brand{letter-spacing:1px;text-align:center;margin:14px 0 8px;font-size:28px}
+.brand span{color:#ff4040}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
+.tile{padding:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-weight:700}
+.hint{opacity:.85;text-align:center;padding:6px 12px}
+.screen{display:none;padding:10px}
+.screen.active{display:block}
+.screen-main{display:block}
+.card{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px;margin:8px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.grow{flex:1}
+button{background:#1e90ff;color:#fff;border:none;padding:10px 12px;border-radius:10px;font-weight:700}
+button.back{background:#555}
+button:disabled{opacity:.5}
+.table-wrapper{overflow:auto;max-height:56vh;border-radius:12px}
+table{width:100%;border-collapse:collapse;background:rgba(0,0,0,.2)}
+th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+tr:hover{background:rgba(255,255,255,.08)}
+.nextweek{position:fixed;right:14px;bottom:14px;padding:14px 18px;border-radius:18px;background:#1e90ff;font-size:16px;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.mail-list, .news-list, .ach-list{list-style:none;padding:0;margin:0}
+.mail-list li,.news-list li{background:rgba(0,0,0,.35);margin:8px 0;padding:10px;border-radius:8px}
+.mail-list li.unread{outline:2px solid #1e90ff}
+.mono{white-space:pre-wrap;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;background:rgba(0,0,0,.3);padding:8px;border-radius:8px}
+.mono.tall{max-height:48vh;overflow:auto}
+canvas{background:rgba(0,0,0,.1);border-radius:12px;margin:8px 0}
+.staff-list .card{display:flex;justify-content:space-between;align-items:center}
+.tabs{display:flex;gap:8px;margin:6px 0}
+.tab{background:#1e90ff66;border:1px solid rgba(255,255,255,.2);padding:8px 10px;border-radius:8px}
+.tab.active{background:#1e90ff}
+.shop-list{display:grid;grid-template-columns:1fr;gap:8px}
+.shop-item{display:grid;grid-template-columns:70px 1fr 90px;gap:10px;align-items:center;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:6px 8px}
+.shop-item img{width:70px;height:50px;object-fit:cover;border-radius:6px}
+.shop-item .buy{justify-self:end}
+.badge{background:#00c853;padding:2px 6px;border-radius:6px;margin-left:6px}
+.h-scroll{display:flex;gap:10px;overflow:auto}

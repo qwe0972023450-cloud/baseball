@@ -1,121 +1,204 @@
-<!doctype html><html lang="zh-Hant"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Baseball Tycoon — v9</title>
-<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#041022">
-<link rel="stylesheet" href="/static/style.css">
-</head><body>
-<div class="bg"><img src="/static/assets/bg.svg" alt=""></div>
-<div class="wrap">
-  <header class="header">
-    <div class="brand">
-      <img id="brandLogo" src="/static/assets/logo_mlb-nyy.svg" width="28" height="28" style="border-radius:6px">
-      <div><b id="brandTitle">Baseball Tycoon v9</b><div class="small" id="brandSub">直立 • 乾淨 UI • 實感球場 • 全聯盟日賽程模擬</div></div>
-    </div>
-    <div class="scoreboard">
-      <div class="scoreSide"><img id="logoAway" src="/static/assets/logo_mlb-nyy.svg" width="22" height="22" style="border-radius:6px"><span id="nameAway">客隊</span></div>
-      <div class="count">
-        <div class="inningline" id="inningLine"></div>
-        <span>B:<span class="dot" id="b1"></span><span class="dot" id="b2"></span><span class="dot" id="b3"></span></span>
-        <span class="strike">S:<span class="dot" id="s1"></span><span class="dot" id="s2"></span></span>
-        <span class="out">O:<span class="dot" id="o1"></span><span class="dot" id="o2"></span></span>
-        <div class="rhe"><b id="scoreAway">0</b>-<b id="scoreHome">0</b>｜R/H/E <span id="rheA">0/0/0</span> vs <span id="rheH">0/0/0</span></div>
-      </div>
-      <div class="scoreSide" style="justify-self:end"><img id="logoHome" src="/static/assets/logo_mlb-nyy.svg" width="22" height="22" style="border-radius:6px"><span id="nameHome">主隊</span></div>
-    </div>
-    <div class="ticker"><div id="tickerLine" class="line">v9：全聯盟排程＆每日全場模擬、分區戰績、球場更擬真、UI 更清爽</div></div>
-  </header>
 
-  <section id="view-home" class="card">
-    <h3>新遊戲 / 模式</h3>
-    <div class="grid2">
-      <div>
-        <label>模式</label>
-        <select id="modeSel"><option value="owner">球隊老闆</option><option value="manager">經理人</option><option value="player">球員生涯</option></select>
-        <label style="margin-top:6px">聯盟</label>
-        <select id="leagueSel">
-          <option value="mlb">MLB（分區）</option>
-          <option value="npb">NPB（中央/太平洋）</option>
-          <option value="kbo">KBO（單聯盟）</option>
-          <option value="cpbl">CPBL（單聯盟）</option>
-        </select>
-        <label style="margin-top:6px">賽季長度</label>
-        <select id="seasonLen"><option value="short">短季（30）</option><option value="real">真實場次</option></select>
-        <label style="margin-top:6px">球隊</label>
-        <select id="teamSel"></select>
-        <label style="margin-top:6px">暱稱 / 老闆名</label>
-        <input id="nick" placeholder="你的稱呼">
-        <div class="btnrow" style="margin-top:8px">
-          <button class="primary" id="startCareer">建立新檔</button>
-          <button id="loadSave">載入存檔</button>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baseball Agent — v0.2 (Soccer x GOAT)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="money" id="money"></div>
+      <div class="center">
+        <span id="seasonWeek"></span>
+      </div>
+      <div class="rep">
+        知名度 <span id="rep"></span>
+      </div>
+    </header>
+
+    <main id="screen-main" class="screen screen-main active">
+      <h1 class="brand">BASEBALL <span>AGENT</span></h1>
+      <div class="grid">
+        <button class="tile" data-screen="office">辦公室<br/><small id="officeLevel"></small></button>
+        <button class="tile" data-screen="clients">客戶（球員）<br/><small id="clientsCount"></small></button>
+        <button class="tile" data-screen="staff">員工<br/><small id="staffSummary"></small></button>
+        <button class="tile" data-screen="academy">學院/農場<br/><small id="academyLevel"></small></button>
+        <button class="tile" data-screen="shop">商店<br/><small id="shopHint"></small></button>
+        <button class="tile" data-screen="news">新聞</button>
+        <button class="tile" data-screen="ranking">經紀公司排名</button>
+        <button class="tile" data-screen="finance">財務</button>
+        <button class="tile" data-screen="achievements">成就</button>
+        <button class="tile" data-screen="settings">設定</button>
+      </div>
+      <div class="hint">點擊右下角的「進入下週」推進時間並觸發事件。</div>
+    </main>
+
+    <!-- 辦公室 -->
+    <section id="screen-office" class="screen">
+      <h2>辦公室</h2>
+      <div class="card">
+        <p>等級：<b id="officeLvl"></b>　容量：<b id="officeCap"></b> 客戶</p>
+        <p>每週營運成本：<b id="officeCost"></b></p>
+        <div class="row">
+          <button id="btnOfficeDown">－</button>
+          <button id="btnOfficeUp">＋ 升級（<span id="officeUpCost"></span>）</button>
         </div>
       </div>
-      <div>
-        <div class="grid3">
-          <div class="card"><div class="small">隊數</div><div id="kTeams">-</div></div>
-          <div class="card"><div class="small">DH</div><div id="kDH">-</div></div>
-          <div class="card"><div class="small">季後賽</div><div id="kPlayoffs">-</div></div>
+      <button class="back">返回</button>
+    </section>
+
+    <!-- 客戶清單 -->
+    <section id="screen-clients" class="screen">
+      <h2>客戶（球員）</h2>
+      <div class="table-wrapper">
+        <table id="clientsTable">
+          <thead>
+            <tr>
+              <th>姓名/球會</th><th>位置</th><th>OVR</th><th>年齡</th><th>技能</th><th>薪資/週</th><th>合約</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button id="btnRecommendAll">推薦所有球員</button>
+        <button id="btnRecommendSome">推薦一些球員</button>
+        <button id="btnFindProspect">球探找新人</button>
+      </div>
+      <button class="back">返回</button>
+    </section>
+
+    <!-- 球員詳情 -->
+    <section id="screen-player" class="screen">
+      <h2 id="pName"></h2>
+      <div class="card" id="pInfo"></div>
+      <div class="row">
+        <canvas id="pOVR" width="250" height="250"></canvas>
+        <div class="card grow">
+          <div id="pSkills"></div>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section id="view-dash" class="card hidden">
-    <h3>看板</h3>
-    <div class="small">球季：<span id="seasonLabel">—</span>　日期：<span id="dateLabel">—</span>　戰績：<span id="recordLabel">0-0</span> <span id="postBadge" class="badge hidden">季後賽</span></div>
-    <div class="card stage" style="margin-top:8px">
-      <img src="/static/assets/ballpark.svg" alt="ballpark">
-      <div class="baseLights"><span id="bl1" class="b"></span><span id="bl2" class="b"></span><span id="bl3" class="b"></span></div>
-      <div class="overlay"><div id="banner" class="banner">PLAY BALL</div></div>
-    </div>
-    <div class="card">
-      <b>今日賽事</b>
-      <div class="small" id="todayGame">—</div>
-      <div class="btnrow" style="margin-top:8px">
-        <button id="playToday" class="primary">進入比賽</button>
-        <button id="simToday">模擬今日（全聯盟）</button>
-        <button id="simToEnd">模擬整季</button>
+      <div class="row">
+        <button id="btnPitch">推薦/代言</button>
+        <button id="btnRenew">更新合約</button>
+        <button id="btnTrade">轉隊談判</button>
+        <button id="btnRelease">釋出</button>
       </div>
-    </div>
-    <div class="card" id="standingsWrap">
-      <h3>戰績榜（分區/聯盟）</h3>
-      <div id="standings"></div>
-    </div>
-    <div class="btnrow"><button id="goPlayoffs" class="primary hidden">進入季後賽</button></div>
-  </section>
+      <button class="back">返回</button>
+    </section>
 
-  <section id="view-game" class="card hidden">
-    <h3>比賽</h3>
-    <div class="stage"><img src="/static/assets/ballpark.svg" alt=""><div class="overlay"><div id="overlayGame" class="banner">HOME RUN</div></div></div>
-    <div class="grid2">
-      <div><label>進攻戰術</label><select id="offTactic"><option value="swing">一般揮棒</option><option value="bunt">短打（犧牲）</option><option value="steal">盜壘</option><option value="ibb">故意四壞（守方）</option></select></div>
-      <div><label>投手球種</label><select id="pitchType"><option value="FF">FF 四縫線</option><option value="SL">SL 滑球</option><option value="CH">CH 變速球</option><option value="CB">CB 曲球</option><option value="SI">SI 伸卡</option></select></div>
-    </div>
-    <div class="btnrow" style="margin-top:6px"><button id="pitch" class="primary">投一球</button><button id="autoHalf">自動半局</button><button id="autoGame">自動整場</button><button id="swapPitcher">換投</button><button id="leaveGame">返回看板</button></div>
-    <div class="card"><h3>轉播</h3><div class="small" id="feed" style="height:220px;overflow:auto"></div></div>
-    <div class="grid2">
-      <div><div class="small" id="boxAwayName">客隊</div><table class="table" id="boxAway"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table></div>
-      <div><div class="small" id="boxHomeName">主隊</div><table class="table" id="boxHome"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table></div>
-    </div>
-  </section>
+    <!-- 轉隊談判 -->
+    <section id="screen-negotiation" class="screen">
+      <h2 id="negTitle">交易談判</h2>
+      <div class="card" id="negBody"></div>
+      <div class="card">
+        <label>轉會費：<b id="offerValText"></b></label>
+        <input id="offerRange" type="range" min="1000000" max="50000000" step="250000" />
+      </div>
+      <div class="row">
+        <button id="btnOfferReject">拒絕</button>
+        <button id="btnOfferCounter">反出價</button>
+        <button id="btnOfferAccept">接受</button>
+      </div>
+      <button class="back">返回</button>
+    </section>
 
-  <section id="view-manager" class="card hidden"><h3>經理人</h3><div class="small">（保留 v8 功能：FA、市場、合約、交易）</div></section>
-  <section id="view-owner" class="card hidden"><h3>老闆</h3><div class="small">（保留 v8 功能：票價/容量、球場升級、贊助）</div></section>
-  <section id="view-career" class="card hidden"><h3>生涯</h3><div class="small">（保留 v8 功能：創角加點）</div></section>
-</div>
+    <!-- 員工 -->
+    <section id="screen-staff" class="screen">
+      <h2>員工</h2>
+      <div class="staff-list" id="staffList"></div>
+      <div class="row">
+        <button data-hire="scout">尋找球探</button>
+        <button data-hire="negotiator">尋找商務經理</button>
+        <button data-hire="trainer">尋找教練</button>
+      </div>
+      <button class="back">返回</button>
+    </section>
 
-<nav class="bottomnav">
-  <a href="#" class="tab active" data-view="home"><img src="/static/assets/ic_home.svg"><span>首頁</span></a>
-  <a href="#" class="tab" data-view="dash"><img src="/static/assets/ic_play.svg"><span>看板</span></a>
-  <a href="#" class="tab" data-view="game"><img src="/static/assets/ic_play.svg"><span>比賽</span></a>
-  <a href="#" class="tab" data-view="post"><img src="/static/assets/ic_trophy.svg"><span>季後賽</span></a>
-  <a href="#" class="tab" data-view="manager"><img src="/static/assets/ic_market.svg"><span>經理人</span></a>
-  <a href="#" class="tab" data-view="owner"><img src="/static/assets/ic_owner.svg"><span>老闆</span></a>
-  <a href="#" class="tab" data-view="career"><img src="/static/assets/ic_user.svg"><span>生涯</span></a>
-  <a href="#" class="tab" data-view="import"><img src="/static/assets/ic_data.svg"><span>資料</span></a>
-</nav>
+    <!-- 學院 -->
+    <section id="screen-academy" class="screen">
+      <h2>學院 / 農場系統</h2>
+      <div class="card">
+        <p>等級：<b id="academyLvl"></b>（每年畢業生：<b id="academyGrad"></b>）</p>
+        <p>每週營運成本：<b id="academyCost"></b></p>
+        <div class="row">
+          <button id="btnAcademyDown">－</button>
+          <button id="btnAcademyUp">＋ 升級（<span id="academyUpCost"></span>）</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>可簽約的新秀</h3>
+        <ul id="prospects"></ul>
+      </div>
+      <button class="back">返回</button>
+    </section>
 
-<div id="toast" class="toast">已儲存</div>
+    <!-- 商店 -->
+    <section id="screen-shop" class="screen">
+      <h2>商店</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="goods">商品</button>
+        <button class="tab" data-tab="transport">交通工具</button>
+        <button class="tab" data-tab="biz">業務</button>
+      </div>
+      <div id="shopList" class="shop-list"></div>
+      <button class="back">返回</button>
+    </section>
 
-<script src="/static/main.js" defer></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}</script>
-</body></html>
+    <!-- 財務 -->
+    <section id="screen-finance" class="screen">
+      <h2>財務</h2>
+      <div class="card" id="financeTotals"></div>
+      <div class="row">
+        <button id="btnFinanceLog">記錄</button>
+        <button id="btnFinanceGain">獲得金額（測試）</button>
+      </div>
+      <div id="financeLog" class="mono tall"></div>
+      <button class="back">返回</button>
+    </section>
+
+    <!-- 排名 -->
+    <section id="screen-ranking" class="screen">
+      <h2>經紀公司排名（本季收益）</h2>
+      <div class="table-wrapper">
+        <table id="rankTable">
+          <thead><tr><th>#</th><th>經紀公司</th><th>收益</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button class="back">返回</button>
+    </section>
+
+    <!-- 新聞 -->
+    <section id="screen-news" class="screen">
+      <h2>新聞</h2>
+      <ul id="newsList" class="news-list"></ul>
+      <button class="back">返回</button>
+    </section>
+
+    <!-- 成就 -->
+    <section id="screen-achievements" class="screen">
+      <h2>成就</h2>
+      <ul id="achList" class="ach-list"></ul>
+      <button class="back">返回</button>
+    </section>
+
+    <!-- 設定 -->
+    <section id="screen-settings" class="screen">
+      <h2>設定 / 存檔</h2>
+      <div class="row">
+        <button id="btnSave">儲存</button>
+        <button id="btnLoad">載入</button>
+        <button id="btnNewGame">開始新遊戲</button>
+      </div>
+      <button class="back">返回</button>
+    </section>
+
+    <button id="nextWeek" class="nextweek">進入下週</button>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
