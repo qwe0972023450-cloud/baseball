@@ -1,64 +1,109 @@
 
 (function(){
-const STORAGE='bbt_v7';
+const STORAGE='bbt_v9';
 const $=id=>document.getElementById(id);
 const qa=(sel,root=document)=>[...root.querySelectorAll(sel)];
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rid=()=>Math.random().toString(36).slice(2,10);
-const N=['Lin','Chen','Wang','Liu','Huang','Suzuki','Tanaka','Sato','Kim','Park','Lee','Smith','Perez','Garcia','Brown','Johnson','Lopez','Martinez','Davis','Clark'];
-const rname=()=>N[Math.floor(Math.random()*N.length)]+' '+String.fromCharCode(65+rand(0,25));
+const toast=(t)=>{const el=$('toast'); el.textContent=t; el.style.display='block'; setTimeout(()=>el.style.display='none',1200);};
 
-const MLB_AL=[
-  ['mlb-bal','Baltimore Orioles','AL'],['mlb-bos','Boston Red Sox','AL'],['mlb-nyy','New York Yankees','AL'],['mlb-tbr','Tampa Bay Rays','AL'],['mlb-tor','Toronto Blue Jays','AL'],
-  ['mlb-cws','Chicago White Sox','AL'],['mlb-cle','Cleveland Guardians','AL'],['mlb-det','Detroit Tigers','AL'],['mlb-kcr','Kansas City Royals','AL'],['mlb-min','Minnesota Twins','AL'],
-  ['mlb-hou','Houston Astros','AL'],['mlb-oak','Oakland Athletics','AL'],['mlb-sea','Seattle Mariners','AL'],['mlb-tex','Texas Rangers','AL'],['mlb-laa','Los Angeles Angels','AL']
-];
-const MLB_NL=[
-  ['mlb-atl','Atlanta Braves','NL'],['mlb-mia','Miami Marlins','NL'],['mlb-nym','New York Mets','NL'],['mlb-phi','Philadelphia Phillies','NL'],['mlb-was','Washington Nationals','NL'],
-  ['mlb-chc','Chicago Cubs','NL'],['mlb-cin','Cincinnati Reds','NL'],['mlb-mil','Milwaukee Brewers','NL'],['mlb-pit','Pittsburgh Pirates','NL'],['mlb-stl','St. Louis Cardinals','NL'],
-  ['mlb-ari','Arizona Diamondbacks','NL'],['mlb-col','Colorado Rockies','NL'],['mlb-lad','Los Angeles Dodgers','NL'],['mlb-sd','San Diego Padres','NL'],['mlb-sf','San Francisco Giants','NL']
-];
-const NPB_CL=[['npb-g','Yomiuri Giants','CL'],['npb-han','Hanshin Tigers','CL'],['npb-cd','Chunichi Dragons','CL'],['npb-hiro','Hiroshima Carp','CL'],['npb-dena','Yokohama DeNA BayStars','CL'],['npb-yak','Tokyo Yakult Swallows','CL']];
-const NPB_PL=[['npb-sb','SoftBank Hawks','PL'],['npb-lotte','Lotte Marines','PL'],['npb-seibu','Seibu Lions','PL'],['npb-ham','Nippon-Ham Fighters','PL'],['npb-orix','Orix Buffaloes','PL'],['npb-rak','Rakuten Eagles','PL']];
-const KBO=[['kbo-ds','Doosan Bears'],['kbo-lg','LG Twins'],['kbo-kiw','Kiwoom Heroes'],['kbo-ssg','SSG Landers'],['kbo-lt','Lotte Giants'],['kbo-han','Hanwha Eagles'],['kbo-kia','KIA Tigers'],['kbo-sam','Samsung Lions'],['kbo-nc','NC Dinos'],['kbo-kt','KT Wiz']];
-const CPBL=[['cpbl-ctbc','CTBC Brothers'],['cpbl-rak','Rakuten Monkeys'],['cpbl-uni','Uni-Lions'],['cpbl-fg','Fubon Guardians'],['cpbl-wcd','Wei Chuan Dragons'],['cpbl-tsg','TSG Hawks']];
+// Presets
+const MLB={divisions:{'AL East':[["mlb-nyy","New York Yankees"],["mlb-tbr","Tampa Bay Rays"],["mlb-tor","Toronto Blue Jays"],["mlb-bos","Boston Red Sox"],["mlb-bal","Baltimore Orioles"]],
+'AL Central':[["mlb-cws","Chicago White Sox"],["mlb-cle","Cleveland Guardians"],["mlb-det","Detroit Tigers"],["mlb-kcr","Kansas City Royals"],["mlb-min","Minnesota Twins"]],
+'AL West':[["mlb-hou","Houston Astros"],["mlb-oak","Oakland Athletics"],["mlb-sea","Seattle Mariners"],["mlb-tex","Texas Rangers"],["mlb-laa","Los Angeles Angels"]],
+'NL East':[["mlb-atl","Atlanta Braves"],["mlb-mia","Miami Marlins"],["mlb-nym","New York Mets"],["mlb-phi","Philadelphia Phillies"],["mlb-was","Washington Nationals"]],
+'NL Central':[["mlb-chc","Chicago Cubs"],["mlb-cin","Cincinnati Reds"],["mlb-mil","Milwaukee Brewers"],["mlb-pit","Pittsburgh Pirates"],["mlb-stl","St. Louis Cardinals"]],
+'NL West':[["mlb-ari","Arizona Diamondbacks"],["mlb-col","Colorado Rockies"],["mlb-lad","Los Angeles Dodgers"],["mlb-sd","San Diego Padres"],["mlb-sf","San Francisco Giants"]]} };
+const NPB={leagues:{'Central':[["npb-g","Yomiuri Giants"],["npb-han","Hanshin Tigers"],["npb-cd","Chunichi Dragons"],["npb-hiro","Hiroshima Carp"],["npb-dena","Yokohama DeNA BayStars"],["npb-yak","Tokyo Yakult Swallows"]],
+'Pacific':[["npb-sb","SoftBank Hawks"],["npb-lotte","Lotte Marines"],["npb-seibu","Seibu Lions"],["npb-ham","Nippon-Ham Fighters"],["npb-orix","Orix Buffaloes"],["npb-rak","Rakuten Eagles"]]}};
+const KBO={teams:[["kbo-ds","Doosan Bears"],["kbo-lg","LG Twins"],["kbo-kiw","Kiwoom Heroes"],["kbo-ssg","SSG Landers"],["kbo-lt","Lotte Giants"],["kbo-han","Hanwha Eagles"],["kbo-kia","KIA Tigers"],["kbo-sam","Samsung Lions"],["kbo-nc","NC Dinos"],["kbo-kt","KT Wiz"]]};
+const CPBL={teams:[["cpbl-ctbc","CTBC Brothers"],["cpbl-rak","Rakuten Monkeys"],["cpbl-uni","Uni-Lions"],["cpbl-fg","Fubon Guardians"],["cpbl-wcd","Wei Chuan Dragons"],["cpbl-tsg","TSG Hawks"]]};
 
-const PRESETS={
-  mlb:{name:'MLB',games:162,dh:true,groups:{AL:MLB_AL,NL:MLB_NL}},
-  npb:{name:'NPB',games:143,dh:true,groups:{CL:NPB_CL,PL:NPB_PL}},
-  kbo:{name:'KBO',games:144,dh:true,teams:KBO},
-  cpbl:{name:'CPBL',games:120,dh:true,teams:CPBL},
-  wbc:{name:'WBC',games:0,dh:true,teams:[['nat-tpe','Chinese Taipei'],['nat-jpn','Japan'],['nat-kor','Korea'],['nat-usa','USA'],['nat-dom','Dominican'],['nat-mex','Mexico'],['nat-ven','Venezuela'],['nat-ned','Netherlands']]},
-  olym:{name:'Olympics',games:0,dh:true,teams:[['nat-tpe','Chinese Taipei'],['nat-jpn','Japan'],['nat-usa','USA'],['nat-dom','Dominican'],['nat-mex','Mexico'],['nat-kor','Korea']]}
-};
+function genName(){const FN=["Wei","Chih","Yu","Hung","Han","Yung","Hao","Yen","Po","Yao","Kei","Shun","Daichi","Yuki","Sora","Min","Hyun","Jae","Dong","Jin","John","Alex","Carlos","Miguel","Luis","Aaron","Mike","James","Ryan","Leo"];const LN=["Lin","Chen","Wang","Liu","Huang","Suzuki","Sato","Tanaka","Yamamoto","Ito","Kim","Park","Lee","Choi","Smith","Johnson","Williams","Brown","Davis","Martinez","Lopez","Perez","Gonzalez","Hernandez","Garcia","Clark","Young"];return FN[rand(0,FN.length-1)]+' '+LN[rand(0,LN.length-1)];}
+function makeBatter(tid){return {pid:rid(),name:genName(),team:tid,contact:rand(55,90),power:rand(50,95),disc:rand(45,85),speed:rand(40,85),bstats:{AB:0,H:0,R:0,RBI:0,BB:0,K:0,HR:0}};}
+function makePitcher(tid, role='SP'){return {pid:rid(),name:genName(),team:tid,role,stuff:rand(55,90),control:rand(45,85),stamina: role==='SP'?rand(65,90):rand(45,75),fatigue:0,mix:['FF','SL','CH','CB','SI'].map(t=>({type:t,q:rand(50,85)}))};}
+function genTeam(id,name,meta){const lineup=[...Array(9)].map(()=>makeBatter(id));const sp=makePitcher(id,'SP');const pen=[makePitcher(id,'RP'),makePitcher(id,'RP'),makePitcher(id,'RP')];return{ id,name,logo:`/static/assets/logo_${id}.svg`,lineup,order:0,sp,pen,curPitcher:sp,fin:{rev:0,price:20,cap:30000},meta};}
 
-const asset=(id)=>`/static/assets/logo_${id.replace(':','-')}.svg`;
-const makeBatter=(tid)=>({pid:rid(),name:rname(),team:tid,contact:50+rand(-5,35),power:50+rand(-10,40),disc:50+rand(-10,30),speed:50+rand(-10,30),bstats:{AB:0,H:0,R:0,RBI:0,BB:0,K:0,HR:0,E:0}});
-const makePitcher=(tid,role)=>({pid:rid(),name:rname(),team:tid,role,stuff:55+rand(-10,30),control:55+rand(-15,30),stamina:role==='SP'?(75+rand(-5,20)):(55+rand(-10,25)),fatigue:0,mix:['FF','SL','CH','CB','SI'].map(t=>({type:t,q:50+rand(-15,25)})),pstats:{OUTS:0,H:0,R:0,BB:0,K:0,HR:0}});
-function genTeam(id,name){const lineup=[...Array(9)].map(()=>makeBatter(id));const sp=makePitcher(id,'SP');const pen=[makePitcher(id,'RP'),makePitcher(id,'RP'),makePitcher(id,'RP')];return{id,name,logo:asset(id),lineup,order:0,sp,pen,curPitcher:sp,stats:{W:0,L:0,R:0,H:0,E:0},fin:{rev:0,price:20,cap:30000}};}
+function buildTeams(lid){
+  let teams=[];
+  if(lid==='mlb'){
+    for(const [div, lst] of Object.entries(MLB.divisions)){
+      const lg = div.startsWith('AL') ? 'AL' : 'NL';
+      lst.forEach(([id,name])=> teams.push(genTeam(id,name,{league:lg,division:div})));
+    }
+  }else if(lid==='npb'){
+    for(const [lg, lst] of Object.entries(NPB.leagues)){
+      lst.forEach(([id,name])=> teams.push(genTeam(id,name,{league:lg})));
+    }
+  }else{
+    const base = lid==='kbo'?KBO.teams:CPBL.teams;
+    base.forEach(([id,name])=> teams.push(genTeam(id,name,{})));
+  }
+  return teams;
+}
 
-let S=null,G=null,POST=null;
-function persist(){localStorage.setItem(STORAGE,JSON.stringify(S)); localStorage.setItem(STORAGE+'_post',JSON.stringify(POST));}
-function load(){const a=localStorage.getItem(STORAGE); if(!a) return null; S=JSON.parse(a); const b=localStorage.getItem(STORAGE+'_post'); POST=b?JSON.parse(b):null; return S;}
-
-function view(v){['home','dash','game','post','manager','owner','import','league'].forEach(x=>{$('view-'+x)?.classList.add('hidden')}); qa('.tab').forEach(t=>t.classList.remove('active')); qa(`.tab[data-view="${v}"]`).forEach(t=>t.classList.add('active')); $('view-'+v)?.classList.remove('hidden');}
-function hydrateHeader(){ if(!S) return; const my=S.teams[S.me]; $('brandLogo').src=my.logo; $('brandTitle').textContent=`${my.name} — ${PRESETS[S.meta.league]?.name||''}`; $('brandSub').textContent=`模式：${S.meta.mode.toUpperCase()} • ${S.meta.nick}`; }
 function inchCells(){let h=''; for(let i=1;i<=12;i++) h+=`<span>${i}</span>`; $('inningLine').innerHTML=h;}
+function view(v){['home','dash','game','post','manager','owner','career','import'].forEach(x=>{$('view-'+x)?.classList.add('hidden')}); qa('.tab').forEach(t=>t.classList.remove('active')); qa(`.tab[data-view="${v}"]`).forEach(t=>t.classList.add('active')); $('view-'+v)?.classList.remove('hidden');}
+function ticker(msg){$('tickerLine').innerHTML=`<span class="line">${msg}　　</span>`;}
 
-function flattenTeams(preset){ if(preset.groups){ return Object.values(preset.groups).flat(); } return preset.teams; }
-function populateHome(){ const lid=$('leagueSel').value; const p=PRESETS[lid]; const teams=flattenTeams(p); $('kDH').textContent=p.dh?'是':'否'; $('kTeams').textContent=teams.length; $('kPlayoffs').textContent=(lid==='mlb'?'12 隊制':'其他（簡化）'); $('teamSel').innerHTML=teams.map(([id,name])=>`<option value="${id}">${name}</option>`).join('');}
-function startNew(){ const lid=$('leagueSel').value, p=PRESETS[lid], nick=$('nick').value||'Player', mode=$('modeSel').value, real=$('seasonLen').value==='real'; const teams=flattenTeams(p).map(([id,name])=>genTeam(id,name)); const me=$('teamSel').value||teams[0].id; const year=new Date().getFullYear(); let seasonGames=p.games; if(!real) seasonGames=30; const schedule=[]; if(lid!=='wbc' && lid!=='olym'){ const arr=teams.map(t=>t.id).filter(id=>id!==me); for(let i=0;i<seasonGames;i++){ const opp=arr[i%arr.length]; const home=(i%2===0)?me:opp; const away=(i%2===0)?opp:me; schedule.push({home,away,date:`${year}-05-${String(1+i).padStart(2,'0')}`}); } } S={meta:{version:'v7',mode,league:lid,season:year,nick},teams:Object.fromEntries(teams.map(t=>[t.id,t])),me,day:0,schedule,standings:Object.fromEntries(teams.map(t=>[t.id,{W:0,L:0}]))}; POST=null; persist(); hydrateHeader(); renderDash(); view('dash');}
+function populateHome(){ const lid=$('leagueSel').value; const teams=buildTeams(lid); $('teamSel').innerHTML=teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); $('kTeams').textContent=teams.length; $('kDH').textContent='是'; $('kPlayoffs').textContent=(lid==='mlb'?'12隊':'各聯盟制'); }
 
-function renderStandings(){ const tbody=$('standings').querySelector('tbody'); const rows=Object.values(S.teams).map(t=>({id:t.id,name:t.name,W:S.standings[t.id].W,L:S.standings[t.id].L})).sort((a,b)=>b.W-a.W).map(r=>`<tr><td>${r.name}</td><td>${r.W}</td><td>${r.L}</td><td>${(r.W/Math.max(1,r.W+r.L)).toFixed(3)}</td></tr>`).join(''); tbody.innerHTML=rows; }
-function renderDash(){ inchCells(); $('seasonLabel').textContent=S.meta.season; $('postBadge').classList.toggle('hidden',!POST); const g=S.schedule[S.day]; if(g){ $('todayGame').textContent=`${S.teams[g.away].name} @ ${S.teams[g.home].name}（第 ${S.day+1} 場）`; $('logoAway').src=S.teams[g.away].logo; $('logoHome').src=S.teams[g.home].logo; $('nameAway').textContent=S.teams[g.away].name; $('nameHome').textContent=S.teams[g.home].name; } const rec=S.standings[S.me]; $('recordLabel').textContent=`${rec.W}-${rec.L}`; renderStandings(); $('goPlayoffs').classList.toggle('hidden',!(S.day>=S.schedule.length && !POST && S.schedule.length>0)); }
+function mkStandings(teams){ const o={}; teams.forEach(t=>o[t.id]={W:0,L:0}); return o; }
 
-function curBatSide(){return G.half==='top'?'away':'home'} function curPitSide(){return G.half==='top'?'home':'away'} function curBatTeam(){return G[curBatSide()]} function curPitTeam(){return G[curPitSide()]}
-function curBatter(){return curBatTeam().lineup[curBatTeam().order%9]} function curPitcher(){return curPitTeam().curPitcher}
+// Schedule (weighted pairs by structure)
+function makeWeightedPairs(ids, getMeta, lid, real){
+  function weight(a,b){
+    if(lid==='mlb'){ const A=getMeta(a), B=getMeta(b); if(A.league===B.league){ if(A.division===B.division) return real?13:2; return real?6:1; } else { return real?4:1; } }
+    if(lid==='npb'){ const A=getMeta(a), B=getMeta(b); if(A.league===B.league) return real?10:2; return real?3:1; }
+    return real?12:2; // kbo/cpbl
+  }
+  const pairs=[]; const homeBias={};
+  for(let i=0;i<ids.length;i++){
+    for(let j=i+1;j<ids.length;j++){
+      const a=ids[i], b=ids[j], w=weight(a,b);
+      for(let k=0;k<w;k++){
+        const home=(homeBias[a]||0) <= (homeBias[b]||0) ? a : b;
+        const away=home===a?b:a;
+        homeBias[home]=(homeBias[home]||0)+1;
+        pairs.push({home,away});
+      }
+    }
+  }
+  return pairs;
+}
+function layoutIntoDays(pairs, ids){
+  const perDay=Math.floor(ids.length/2), days=[]; let cur=[], busy=new Set(); const base=new Date(new Date().getFullYear(),3,1); let di=0;
+  pairs.forEach(g=>{
+    const {home:a,away:b}=g;
+    if(busy.has(a)||busy.has(b)||cur.length>=perDay){ days.push({date:new Date(base.getTime()+di*86400000).toISOString().slice(0,10), games:cur}); di++; cur=[]; busy.clear(); }
+    cur.push({home:a,away:b}); busy.add(a); busy.add(b);
+  });
+  if(cur.length) days.push({date:new Date(base.getTime()+di*86400000).toISOString().slice(0,10), games:cur});
+  return days;
+}
+
+let S=null, G=null, POST=null;
+function persist(){localStorage.setItem(STORAGE,JSON.stringify(S)); localStorage.setItem(STORAGE+'_post',JSON.stringify(POST));}
+function load(){const a=localStorage.getItem(STORAGE); if(!a) return null; S=JSON.parse(a); POST=JSON.parse(localStorage.getItem(STORAGE+'_post')||'null'); return S;}
+
+function startNew(){ const lid=$('leagueSel').value, mode=$('modeSel').value, nick=$('nick').value||'Player', real=$('seasonLen').value==='real'; const teams=buildTeams(lid); const ids=teams.map(t=>t.id); const getMeta=(id)=>teams.find(t=>t.id===id).meta||{}; const pairs=makeWeightedPairs(ids,getMeta,lid,real); const days=layoutIntoDays(pairs,ids); const map=Object.fromEntries(teams.map(t=>[t.id,t])); const me=$('teamSel').value||ids[0]; S={meta:{version:'v9',mode,league:lid,season:(new Date().getFullYear()),nick}, teams:map, me, dayPos:0, days, standings:mkStandings(teams)}; persist(); renderDash(); view('dash'); toast('已建立存檔'); ticker('賽季開打！'); }
+
+// Dashboard
+function today(){ return S.days[S.dayPos]; }
+function renderDash(){ inchCells(); $('seasonLabel').textContent=S.meta.season; const d=today(); $('dateLabel').textContent=d?d.date:'—'; const g=d?.games.find(g=>g.home===S.me||g.away===S.me); if(g){ $('todayGame').textContent=`${S.teams[g.away].name} @ ${S.teams[g.home].name}（第 ${S.dayPos+1} 日）`; $('logoAway').src=S.teams[g.away].logo; $('logoHome').src=S.teams[g.home].logo; $('nameAway').textContent=S.teams[g.away].name; $('nameHome').textContent=S.teams[g.home].name; } else { $('todayGame').textContent='今日沒有你的比賽'; } const rec=S.standings[S.me]; $('recordLabel').textContent=`${rec.W}-${rec.L}`; renderStandings(); $('goPlayoffs').classList.toggle('hidden',!(S.dayPos>=S.days.length && !POST && S.days.length>0)); }
+
+function groupByDivision(){ if(S.meta.league==='mlb'){ const groups={}; Object.values(S.teams).forEach(t=>{ const key=t.meta.division; if(!groups[key]) groups[key]=[]; const rec=S.standings[t.id]; const pct=rec.W/Math.max(1,rec.W+rec.L); groups[key].push({id:t.id,name:t.name,W:rec.W,L:rec.L,pct}); }); Object.values(groups).forEach(arr=>arr.sort((a,b)=>b.pct-a.pct)); return groups; } else if(S.meta.league==='npb'){ const groups={Central:[],Pacific:[]}; Object.values(S.teams).forEach(t=>{ const key=t.meta.league; const rec=S.standings[t.id]; const pct=rec.W/Math.max(1,rec.W+rec.L); groups[key].push({id:t.id,name:t.name,W:rec.W,L:rec.L,pct}); }); Object.values(groups).forEach(arr=>arr.sort((a,b)=>b.pct-a.pct)); return groups; } else { const all={'聯盟':[]}; Object.values(S.teams).forEach(t=>{ const rec=S.standings[t.id]; const pct=rec.W/Math.max(1,rec.W+rec.L); all['聯盟'].push({id:t.id,name:t.name,W:rec.W,L:rec.L,pct}); }); all['聯盟'].sort((a,b)=>b.pct-a.pct); return all; } }
+function renderStandings(){ const holder=$('standings'); holder.innerHTML=''; const groups=groupByDivision(); Object.entries(groups).forEach(([g,list])=>{ const h=document.createElement('div'); h.className='groupHead'; h.textContent=g; holder.appendChild(h); const table=document.createElement('table'); table.className='table'; table.innerHTML='<thead><tr><th>隊名</th><th>W</th><th>L</th><th>PCT</th></tr></thead><tbody>'+ list.map(r=>`<tr><td>${r.name}</td><td>${r.W}</td><td>${r.L}</td><td>${r.pct.toFixed(3)}</td></tr>`).join('')+'</tbody>'; holder.appendChild(table); }); }
+
+// Game engine
+let G=null;
+function curBatSide(){return G.half==='top'?'away':'home'} function curPitSide(){return G.half==='top'?'home':'away'} function curBatTeam(){return G[curBatSide()]} function curPitTeam(){return G[curPitSide()]} function curBatter(){return curBatTeam().lineup[curBatTeam().order%9]} function curPitcher(){return curPitTeam().curPitcher}
 function resetCount(){G.balls=0;G.strikes=0} function nextBatter(){curBatTeam().order=(curBatTeam().order+1)%9}
-function pushLog(m){const f=$('feed'); const p=document.createElement('p'); p.textContent=m; f.appendChild(p); f.scrollTop=f.scrollHeight;}
-function fillBox(id,lineup){const tb=$(id).querySelector('tbody'); tb.innerHTML=lineup.map(b=>`<tr><td>${b.name}</td><td>${b.bstats.AB}</td><td>${b.bstats.H}</td><td>${b.bstats.R}</td><td>${b.bstats.RBI}</td><td>${b.bstats.BB}</td><td>${b.bstats.K}</td><td>${b.bstats.HR}</td></tr>`).join('');}
-function updateHUD(){ ['b1','b2','b3'].forEach((id,i)=>$(id).classList.toggle('on',G.balls>i)); ['s1','s2'].forEach((id,i)=>$(id).classList.toggle('on',G.strikes>i)); ['o1','o2'].forEach((id,i)=>$(id).classList.toggle('on',G.outs>i)); $('scoreAway').textContent=G.score.away; $('scoreHome').textContent=G.score.home; $('rheA').textContent=G.rhe.away.join('/'); $('rheH').textContent=G.rhe.home.join('/');}
+function pushLog(m){const f=$('feed'); const p=document.createElement('p'); p.textContent=m; f.appendChild(p); f.scrollTop=f.scrollHeight; ticker(m);}
+function fillBox(id,lineup){const tb=$(id).querySelector('tbody'); tb.innerHTML=lineup.map(b=>`<tr><td>${b.name}</td><td>${b.bstats.AB||0}</td><td>${b.bstats.H||0}</td><td>${b.bstats.R||0}</td><td>${b.bstats.RBI||0}</td><td>${b.bstats.BB||0}</td><td>${b.bstats.K||0}</td><td>${b.bstats.HR||0}</td></tr>`).join('');}
+function updateBaseLights(){ ['bl1','bl2','bl3'].forEach((id,i)=>$(id).classList.toggle('on',G.bases[i]===1)); }
+function updateHUD(){ ['b1','b2','b3'].forEach((id,i)=>$(id).classList.toggle('on',G.balls>i)); ['s1','s2'].forEach((id,i)=>$(id).classList.toggle('on',G.strikes>i)); ['o1','o2'].forEach((id,i)=>$(id).classList.toggle('on',G.outs>i)); $('scoreAway').textContent=G.score.away; $('scoreHome').textContent=G.score.home; $('rheA').textContent=G.rhe.away.join('/'); $('rheH').textContent=G.rhe.home.join('/'); updateBaseLights(); }
 function endHalf(){ G.outs=0; G.bases=[0,0,0]; resetCount(); G.half=G.half==='top'?'bot':'top'; if(G.half==='top') G.inning++; pushLog('— 半局結束');}
 function scoreRun(n){G.score[curBatSide()]+=n; G.rhe[curBatSide()][0]=G.score[curBatSide()]}
 function advance(n){const b=G.bases;for(let i=0;i<n;i++){if(b[2]){scoreRun(1);b[2]=0;} if(b[1]){b[2]=1;b[1]=0;} if(b[0]){b[1]=1;b[0]=0;}}}
@@ -66,32 +111,20 @@ function walk(){const b=G.bases;if(b[0]&&b[1]&&b[2])scoreRun(1); else if(b[0]&&b
 
 function outcome(){const bat=curBatter(),pit=curPitcher(),off=$('offTactic').value,pType=$('pitchType').value; if(off==='ibb') return 'BB'; if(off==='bunt'&&G.outs<2&&(G.bases[0]||G.bases[1])) return Math.random()<0.72?'SAC':'FOUL'; if(off==='steal'&&(G.bases[0]||G.bases[1])) return Math.random()<0.58?'STEAL_OK':'STEAL_OUT'; const q=(pit.mix.find(x=>x.type===pType)?.q||60), effStuff=pit.stuff-Math.floor(pit.fatigue/12), effCtrl=pit.control-Math.floor(pit.fatigue/10); let pBall=.33-(effCtrl-60)/400+(bat.disc-60)/300, pStrike=.27+(effCtrl-60)/400-(bat.disc-60)/300, pFoul=.12+(bat.contact-60)/400, pInPlay=1-(pBall+pStrike+pFoul); pStrike+=(q-60)/300; pInPlay+=(effStuff-60)/500-(q-60)/600; pBall=clamp(pBall,0.05,0.6); pStrike=clamp(pStrike,0.1,0.6); pFoul=clamp(pFoul,0.05,0.4); pInPlay=clamp(pInPlay,0.05,0.6); const r=Math.random(); if(r<pBall) return 'BALL'; if(r<pBall+pStrike) return 'STRIKE'; if(r<pBall+pStrike+pFoul) return 'FOUL'; const hitP=clamp(0.25+(bat.contact-60)/400+(bat.power-60)/500-(effStuff-60)/600,0.12,0.43), hrP=clamp(0.03+(bat.power-70)/300,0.005,0.12), xbP=clamp(0.09+(bat.power-60)/400,0.02,0.28); if(Math.random()<hitP){ if(Math.random()<hrP) return 'HR'; return Math.random()<xbP?(Math.random()<0.85?'2B':'3B'):'1B'; } return 'OUT';}
 
-function playOne(){ if(!G||G.finished) return; const o=outcome(); const bat=curBatter(); if(o==='BALL'){G.balls++;pushLog('壞球'); if(G.balls>=4){walk();bat.bstats.BB++;pushLog('保送'); nextBatter(); resetCount();}} else if(o==='STRIKE'){G.strikes++;pushLog('好球'); if(G.strikes>=3){bat.bstats.K++;G.outs++;pushLog(`${bat.name} 三振`); nextBatter(); resetCount();}} else if(o==='FOUL'){ if(G.strikes<2) G.strikes++; pushLog('界外球'); } else if(o==='STEAL_OK'){ if(G.bases[0]&&!G.bases[1]){G.bases[0]=0;G.bases[1]=1;} else if(G.bases[1]&&!G.bases[2]){G.bases[2]=1;} pushLog('⚡ 盜壘成功'); } else if(o==='STEAL_OUT'){ if(G.bases[1]) G.bases[1]=0; else if(G.bases[0]) G.bases[0]=0; G.outs++; pushLog('🔒 盜壘失敗'); } else if(o==='SAC'){ advance(1); G.outs++; pushLog('犧牲短打'); nextBatter(); } else if(o==='BB'){ walk(); bat.bstats.BB++; nextBatter(); } else if(o==='1B'){ advance(1); G.bases[0]=1; bat.bstats.AB++; bat.bstats.H++; pushLog('一壘安打'); nextBatter(); } else if(o==='2B'){ advance(2); G.bases[1]=1; G.bases[0]=0; bat.bstats.AB++; bat.bstats.H++; pushLog('二壘安打'); nextBatter(); } else if(o==='3B'){ advance(3); G.bases[2]=1; G.bases[1]=0; G.bases[0]=0; bat.bstats.AB++; bat.bstats.H++; pushLog('三壘安打'); nextBatter(); } else if(o==='HR'){ const runs=1+G.bases[0]+G.bases[1]+G.bases[2]; G.bases=[0,0,0]; scoreRun(runs); bat.bstats.AB++; bat.bstats.H++; bat.bstats.HR++; pushLog('💥 全壘打！'+runs+' 分'); $('overlayGame').style.display='block'; setTimeout(()=>$('overlayGame').style.display='none',900); nextBatter(); } else if(o==='OUT'){ G.outs++; bat.bstats.AB++; pushLog('出局'); nextBatter(); } if(G.outs>=3) endHalf(); updateHUD(); fillBox('boxAway',G.away.lineup); fillBox('boxHome',G.home.lineup); }
+function playOne(){ if(!G||G.finished) return; const o=outcome(); const bat=curBatter(), pit=curPitcher(); if(o==='BALL'){G.balls++;pushLog('壞球'); if(G.balls>=4){walk();bat.bstats.BB=(bat.bstats.BB||0)+1;pushLog('保送'); nextBatter(); resetCount();}} else if(o==='STRIKE'){G.strikes++;pushLog('好球'); if(G.strikes>=3){bat.bstats.K=(bat.bstats.K||0)+1;G.outs++;pushLog(`${bat.name} 三振`); nextBatter(); resetCount();}} else if(o==='FOUL'){ if(G.strikes<2) G.strikes++; pushLog('界外球'); } else if(o==='STEAL_OK'){ if(G.bases[0]&&!G.bases[1]){G.bases[0]=0;G.bases[1]=1;} else if(G.bases[1]&&!G.bases[2]){G.bases[2]=1;} pushLog('⚡ 盜壘成功'); } else if(o==='STEAL_OUT'){ if(G.bases[1]) G.bases[1]=0; else if(G.bases[0]) G.bases[0]=0; G.outs++; pushLog('🔒 盜壘失敗'); } else if(o==='SAC'){ advance(1); G.outs++; pushLog('犧牲短打'); nextBatter(); } else if(o==='BB'){ walk(); bat.bstats.BB=(bat.bstats.BB||0)+1; nextBatter(); } else if(o==='1B'){ advance(1); G.bases[0]=1; bat.bstats.AB=(bat.bstats.AB||0)+1; bat.bstats.H=(bat.bstats.H||0)+1; pushLog('一壘安打'); nextBatter(); } else if(o==='2B'){ advance(2); G.bases[1]=1; G.bases[0]=0; bat.bstats.AB=(bat.bstats.AB||0)+1; bat.bstats.H=(bat.bstats.H||0)+1; pushLog('二壘安打'); nextBatter(); } else if(o==='3B'){ advance(3); G.bases[2]=1; G.bases[1]=0; G.bases[0]=0; bat.bstats.AB=(bat.bstats.AB||0)+1; bat.bstats.H=(bat.bstats.H||0)+1; pushLog('三壘安打'); nextBatter(); } else if(o==='HR'){ const runs=1+G.bases[0]+G.bases[1]+G.bases[2]; G.bases=[0,0,0]; scoreRun(runs); bat.bstats.AB=(bat.bstats.AB||0)+1; bat.bstats.H=(bat.bstats.H||0)+1; bat.bstats.HR=(bat.bstats.HR||0)+1; pushLog('💥 全壘打！'+runs+' 分'); $('overlayGame').style.display='block'; setTimeout(()=>$('overlayGame').style.display='none',900); nextBatter(); } else if(o==='OUT'){ G.outs++; bat.bstats.AB=(bat.bstats.AB||0)+1; pushLog('出局'); nextBatter(); } pit.fatigue+=rand(1,3); if(G.outs>=3) endHalf(); updateHUD(); fillBox('boxAway',G.away.lineup); fillBox('boxHome',G.home.lineup); }
+
 function autoHalf(){let i=0; while(G && G.outs<3 && i++<400) playOne();}
 function autoGame(){let i=0; while(G && G.inning<=12 && i++<6000) playOne(); if(G && G.inning>12) finishGame();}
-function initGame(){const g=S.schedule[S.day]; if(!g){alert('本季已結束'); return;} G={away:S.teams[g.away],home:S.teams[g.home],inning:1,half:'top',outs:0,balls:0,strikes:0,bases:[0,0,0],score:{away:0,home:0},rhe:{away:[0,0,0],home:[0,0,0]},finished:false}; $('feed').innerHTML=''; fillBox('boxAway',G.away.lineup); fillBox('boxHome',G.home.lineup); $('boxAwayName').textContent=G.away.name; $('boxHomeName').textContent=G.home.name; updateHUD(); view('game');}
-function finishGame(){G.finished=true; const game=S.schedule[S.day]; const winner=G.score.home>G.score.away?'home':(G.score.away>G.score.home?'away':null); if(winner==='home') S.standings[game.home].W++; else if(winner==='away') S.standings[game.away].W++; if(winner!=='home') S.standings[game.home].L++; if(winner!=='away') S.standings[game.away].L++; const cap=S.teams[game.home].fin.cap||30000, price=S.teams[game.home].fin.price||20, att=Math.floor(cap*clamp(0.35+0.3*Math.random(),0.2,0.95)); S.teams[game.home].fin.rev+=att*price; S.day++; persist(); renderDash(); view('dash');}
+function initGame(){const d=today(); if(!d){alert('球季結束'); return;} const g=d.games.find(x=>x.home===S.me||x.away===S.me); if(!g){alert('今日沒有你的比賽'); return;} G={away:S.teams[g.away],home:S.teams[g.home],inning:1,half:'top',outs:0,balls:0,strikes:0,bases:[0,0,0],score:{away:0,home:0},rhe:{away:[0,0,0],home:[0,0,0]},finished:false}; $('feed').innerHTML=''; $('boxAwayName').textContent=G.away.name; $('boxHomeName').textContent=G.home.name; fillBox('boxAway',G.away.lineup); fillBox('boxHome',G.home.lineup); updateHUD(); view('game'); }
 
-function standingsSorted(){ const arr=Object.entries(S.standings).map(([id,rec])=>({id,name:S.teams[id].name,W:rec.W,L:rec.L,winpct:rec.W/Math.max(1,rec.W+rec.L)})); return arr.sort((a,b)=>b.winpct-a.winpct);}
-function makeMLBBracket(){ function seeds(group){const ids=(group==='AL'?MLB_AL:MLB_NL).map(x=>x[0]); const list=ids.map(id=>({id, ...S.standings[id], winpct:S.standings[id].W/Math.max(1,S.standings[id].W+S.standings[id].L)})).sort((a,b)=>b.winpct-a.winpct).slice(0,6).map((r,i)=>({seed:i+1,team:r.id})); return list;} const al=seeds('AL'), nl=seeds('NL'); return {type:'mlb12',round:0,series:[{name:'AL WC',best:3,pairs:[[al[2],al[5]],[al[3],al[4]]]},{name:'NL WC',best:3,pairs:[[nl[2],nl[5]],[nl[3],nl[4]]]},{name:'AL DS',best:5,pairs:[[al[0],'W_AL_WC2'],[al[1],'W_AL_WC1']]},{name:'NL DS',best:5,pairs:[[nl[0],'W_NL_WC2'],[nl[1],'W_NL_WC1']]},{name:'ALCS',best:7,pairs:[['W_AL_DS2','W_AL_DS1']]},{name:'NLCS',best:7,pairs:[['W_NL_DS2','W_NL_DS1']]},{name:'WS',best:7,pairs:[['W_ALCS','W_NLCS']]}]};}
-function makeNPBBracket(){function seeds(g){const ids=(g==='CL'?NPB_CL:NPB_PL).map(x=>x[0]);const list=ids.map(id=>({id,winpct:S.standings[id].W/Math.max(1,S.standings[id].W+S.standings[id].L)})).sort((a,b)=>b.winpct-a.winpct).slice(0,3);return list;} const cl=seeds('CL'), pl=seeds('PL'); return {type:'npb',round:0,series:[{name:'CL Stage1',best:3,pairs:[[cl[1],cl[2]]]},{name:'PL Stage1',best:3,pairs:[[pl[1],pl[2]]]},{name:'CL Final',best:6,advantage:1,pairs:[[cl[0],'W_CL_Stage1']]},{name:'PL Final',best:6,advantage:1,pairs:[[pl[0],'W_PL_Stage1']]},{name:'日本一',best:7,pairs:[['W_CL_Final','W_PL_Final']]}]};}
-function makeKBOBracket(){const list=standingsSorted(); const top5=list.slice(0,5).map(x=>x.id); return {type:'kbo',round:0,series:[{name:'WC',best:3,pairs:[[top5[3],top5[4]]]},{name:'半準決',best:5,pairs:[['W_WC',top5[2]]]},{name:'準決',best:5,pairs:[['W_半準決',top5[1]]]},{name:'韓國大賽',best:7,pairs:[['W_準決',top5[0]]]}]};}
-function makeCPBLBracket(){const list=standingsSorted(); const top3=list.slice(0,3).map(x=>x.id); return {type:'cpbl',round:0,series:[{name:'挑戰賽',best:5,pairs:[[top3[1],top3[2]]]},{name:'台灣大賽',best:7,pairs:[['W_挑戰賽',top3[0]]]}]};}
-function makeWBC(){const teams=PRESETS.wbc.teams.map(x=>x[0]); const A=teams.slice(0,4), B=teams.slice(4,8); return {type:'wbc',round:0,groups:{A,B},series:[{name:'準決',best:1,pairs:[['A1','B2'],['B1','A2']]},{name:'冠軍',best:1,pairs:[['W_準決2','W_準決1']]}]};}
-function makeOLYM(){const teams=PRESETS.olym.teams.map(x=>x[0]); const A=teams.slice(0,3), B=teams.slice(3,6); return {type:'olym',round:0,groups:{A,B},series:[{name:'準決',best:1,pairs:[['A1','B2'],['B1','A2']]},{name:'金牌戰',best:1,pairs:[['W_準決2','W_準決1']]}]};}
+// Full-day sim
+function teamStrength(t){ const bat=(t.lineup.reduce((s,b)=>s+b.contact+b.power,0)/t.lineup.length); const pit=t.sp.stuff; return (bat+pit)/3; }
+function quickSimGame(home, away){ const th=teamStrength(home), ta=teamStrength(away); const base=4.2; const diff=(th-ta)/20; const homeRuns=Math.max(0,Math.round(base+1.1+diff+(Math.random()*3-1.5))); const awayRuns=Math.max(0,Math.round(base-0.1-diff+(Math.random()*3-1.5))); return {homeRuns,awayRuns}; }
+function applyResult(game, sh, sa){ if(sh>sa){ S.standings[game.home].W++; S.standings[game.away].L++; } else { S.standings[game.away].W++; S.standings[game.home].L++; } }
+function simTodayAll(includeMy){ const d=today(); if(!d) return; const my=d.games.find(x=>x.home===S.me||x.away===S.me); d.games.forEach(g=>{ if(!includeMy && my && g.home===my.home && g.away===my.away) return; const r=quickSimGame(S.teams[g.home],S.teams[g.away]); applyResult(g,r.homeRuns,r.awayRuns); }); S.dayPos++; persist(); renderDash(); }
+function finishGame(){ const d=today(); const my=d?.games.find(x=> (S.teams[x.home].name===G.home.name && S.teams[x.away].name===G.away.name) ); const game={home:G.home.id,away:G.away.id}; const win= G.score.home===G.score.away ? (Math.random()<0.5?'home':'away') : (G.score.home>G.score.away?'home':'away'); applyResult(game, win==='home'?1:0, win==='away'?1:0); simTodayAll(false); view('dash'); }
 
-function buildPost(){const lid=S.meta.league; if(lid==='mlb') POST=makeMLBBracket(); else if(lid==='npb') POST=makeNPBBracket(); else if(lid==='kbo') POST=makeKBOBracket(); else if(lid==='cpbl') POST=makeCPBLBracket(); else if(lid==='wbc') POST=makeWBC(); else if(lid==='olym') POST=makeOLYM(); renderPost(); persist();}
-function resolveTeam(token){ if(typeof token==='object') return token.team; if(token.startsWith('W_')){ return POST.results?.[token] || token; } return token; }
-function renderPost(){ const box=$('bracket'); box.innerHTML=''; const info=[]; POST.results=POST.results||{}; POST.series.forEach((round,ri)=>{ const col=document.createElement('div'); col.className='slot'; const title=`${round.name}（BO${round.best}${round.advantage?` • 上位帶${round.advantage}勝`:''}）`; col.innerHTML=`<b>${title}</b>`; round.pairs.forEach((pr,pi)=>{ const A=resolveTeam(typeof pr[0]==='string'?pr[0]:pr[0]), B=resolveTeam(typeof pr[1]==='string'?pr[1]:pr[1]); const nameA=S.teams[A]?.name||A, nameB=S.teams[B]?.name||B; const key=(round.name==='準決'?'準決'+(pi+1):round.name.replace(/\s/g,''))+(pi+1); const res=POST.results['W_'+key]?` → ${S.teams[POST.results['W_'+key]]?.name||POST.results['W_'+key]}`:''; const div=document.createElement('div'); div.className='small'; div.textContent=`${nameA} vs ${nameB}${res}`; col.appendChild(div); }); box.appendChild(col); info.push(title); }); $('postInfo').textContent=`格式：${info.join(' ／ ')}`;}
-function simRound(){ POST.series=POST.series.map((round,ri)=>{ round.pairs.forEach((pr,pi)=>{ const A=resolveTeam(pr[0]), B=resolveTeam(pr[1]); if(!S.teams[A]||!S.teams[B]) return; let aWins=0,bWins=0,need=Math.ceil(round.best/2); if(round.advantage){ aWins+=round.advantage; } while(aWins<need && bWins<need){ if(Math.random()<0.5) aWins++; else bWins++; } const winner=aWins>bWins?A:B; const key=(round.name==='準決'?'準決'+(pi+1):round.name.replace(/\s/g,''))+(pi+1); POST.results['W_'+key]=winner; }); return round; }); POST.series=POST.series.map(round=>{ round.pairs=round.pairs.map(p=>p.map(x=> (typeof x==='string' && x.startsWith('W_')) ? POST.results[x]||x : x )); return round; }); renderPost(); }
-function resetPost(){ POST=null; buildPost(); }
-
-function openMarket(){const pool=[...Array(10)].map(()=>({name:rname(),contact:60+rand(-20,20),power:60+rand(-20,20),disc:60+rand(-20,20),speed:60+rand(-20,20)})); $('marketBox').innerHTML=pool.map(p=>`<div>- ${p.name} C${p.contact}/P${p.power}/D${p.disc}/S${p.speed} <button class="hire">簽約</button></div>`).join(''); qa('#marketBox .hire').forEach(b=>b.onclick=()=>{ S.teams[S.me].lineup.push(makeBatter(S.me)); persist(); $('marketBox').innerHTML='已簽 1 人（示範）';});}
-function applyFinance(){const my=S.teams[S.me]; my.fin.price=parseFloat($('price').value)||20; my.fin.cap=parseInt($('cap').value)||30000; $('financeBox').textContent=`票價 $${my.fin.price} 容量 ${my.fin.cap.toLocaleString()} 收入 $${my.fin.rev.toLocaleString()}`; persist();}
-
-function applyImport(){try{const obj=JSON.parse($('importText').value); if(obj.teams){ obj.teams.forEach(t=>{ if(!t.id||!t.name) return; if(!t.logo) t.logo=asset(t.id); if(!t.lineup) t.lineup=[...Array(9)].map(()=>makeBatter(t.id)); S.teams[t.id]=t; S.standings[t.id]=S.standings[t.id]||{W:0,L:0}; }); } if(obj.playoffs||obj.tournament){ POST=obj.playoffs||obj.tournament; } persist(); alert('匯入完成'); }catch(e){alert('JSON 格式錯誤：'+e.message);}}
-async function loadFromUrl(){const url=prompt('貼上 JSON URL（如 raw.githubusercontent.com）'); if(!url) return; const r=await fetch(url); $('importText').value=await r.text(); }
-
-function attach(){ qa('.bottomnav .tab').forEach(t=>t.addEventListener('click',e=>{e.preventDefault(); view(t.dataset.view);})); $('leagueSel').addEventListener('change',populateHome); $('startCareer').addEventListener('click',startNew); $('loadSave').addEventListener('click',()=>{ if(load()){ hydrateHeader(); renderDash(); view('dash'); } else alert('沒有存檔'); }); $('openImport').addEventListener('click',()=>view('import')); $('applyImport').addEventListener('click',applyImport); $('loadFromUrl').addEventListener('click',loadFromUrl); $('playToday').addEventListener('click',()=>{ initGame(); }); $('simToday').addEventListener('click',()=>{ initGame(); autoGame(); }); $('simToEnd').addEventListener('click',()=>{ while(S.day<S.schedule.length){ initGame(); autoGame(); } renderDash(); $('banner').textContent='REGULAR SEASON COMPLETE'; $('banner').style.display='block'; setTimeout(()=>$('banner').style.display='none',1500); }); $('goPlayoffs').addEventListener('click',()=>{ buildPost(); view('post'); }); $('simRound').addEventListener('click',simRound); $('resetPost').addEventListener('click',resetPost); $('pitch').addEventListener('click',playOne); $('autoHalf').addEventListener('click',autoHalf); $('autoGame').addEventListener('click',autoGame); $('swapPitcher').addEventListener('click',()=>{ if(!G) return; const t=G[curPitSide()]; const nxt=t.pen.shift(); if(!nxt){alert('牛棚用盡');return;} t.pen.push(t.curPitcher); t.curPitcher=nxt; pushLog('換投：'+nxt.name); }); $('leaveGame').addEventListener('click',()=>{ view('dash'); renderDash(); }); $('genFA').addEventListener('click',openMarket); $('openMarket').addEventListener('click',openMarket); $('applyFinance').addEventListener('click',applyFinance); }
-window.addEventListener('load',()=>{ attach(); populateHome(); if(load()){ hydrateHeader(); renderDash(); view('dash'); } else { view('home'); } });
+// Events
+function attach(){ qa('.bottomnav .tab').forEach(t=>t.addEventListener('click',e=>{e.preventDefault(); view(t.dataset.view);})); $('leagueSel').addEventListener('change',populateHome); $('startCareer').addEventListener('click',startNew); $('loadSave').addEventListener('click',()=>{ if(load()){ renderDash(); view('dash'); } else alert('沒有存檔'); }); $('playToday').addEventListener('click',()=>{ initGame(); }); $('simToday').addEventListener('click',()=>{ simTodayAll(true); }); $('simToEnd').addEventListener('click',()=>{ while(S.dayPos<S.days.length){ simTodayAll(true); } renderDash(); $('banner').textContent='REGULAR SEASON COMPLETE'; $('banner').style.display='block'; setTimeout(()=>$('banner').style.display='none',1500); }); $('pitch').addEventListener('click',playOne); $('autoHalf').addEventListener('click',autoHalf); $('autoGame').addEventListener('click',autoGame); $('swapPitcher').addEventListener('click',()=>{ if(!G) return; const t=G[curPitSide()]; const nxt=t.pen.shift(); if(!nxt){alert('牛棚用盡');return;} t.pen.push(t.curPitcher); t.curPitcher=nxt; pushLog('換投：'+nxt.name); }); $('leaveGame').addEventListener('click',()=>{ view('dash'); renderDash(); }); }
+window.addEventListener('load',()=>{ attach(); populateHome(); if(load()){ renderDash(); view('dash'); } else { view('home'); } });
 })();
