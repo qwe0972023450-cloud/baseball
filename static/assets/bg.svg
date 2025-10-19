@@ -1,1 +1,9 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='#061026'/><stop offset='1' stop-color='#0b3355'/></linearGradient><radialGradient id='r' cx='55%' cy='25%' r='70%'><stop offset='0' stop-color='#1b6fb2' stop-opacity='.25'/><stop offset='1' stop-color='#000' stop-opacity='0'/></radialGradient></defs><rect width='100%' height='100%' fill='url(#g)'/><circle cx='55%' cy='25%' r='520' fill='url(#r)'/><g fill='none' stroke='#ffffff20'><path d='M0 800 Q 960 620 1920 800' stroke-width='2'/><path d='M0 860 Q 960 680 1920 860' stroke-width='2' opacity='.6'/></g><text x='40' y='90' fill='#ffffff33' font-size='46' font-family='system-ui,Segoe UI,Roboto'>Baseball Tycoon — v4</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920">
+  <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#050d1e"/><stop offset="1" stop-color="#0b3355"/></linearGradient></defs>
+  <rect width="100%" height="100%" fill="url(#g)"/>
+  <g fill="none" stroke="#ffffff12">
+    <circle cx="540" cy="300" r="250"/>
+    <circle cx="540" cy="310" r="330" stroke-opacity=".6"/>
+  </g>
+  <text x="24" y="120" fill="#ffffff33" font-size="42" font-family="system-ui">Baseball Tycoon — v5</text>
+</svg>
