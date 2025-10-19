@@ -1,5 +1,3 @@
-# Baseball Tycoon v4 — PWA + Heroku-ready
+# Baseball Tycoon v5 — Portrait-first
 
-- 側邊欄導覽、行動優化、Scorebug、壘包鑽石。
-- 引擎：疲勞、Reach on Error、R/H/E、LOB、簡化勝敗。
-- Heroku/Pages 皆可直接部署。
+直立導向、底部導覽、模式→聯盟→看板→當日比賽流程。PWA + Heroku-ready。

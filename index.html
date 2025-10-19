@@ -1,171 +1,120 @@
 <!doctype html><html lang="zh-Hant"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Baseball Tycoon — v4</title>
-<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#061026">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Baseball Tycoon — v5</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#050d1e">
 <link rel="stylesheet" href="/static/style.css">
 </head><body>
 <div class="bg"><img src="/static/assets/bg.svg" alt=""></div>
-<div class="app">
-  <aside class="sidebar">
-    <div class="nav">
-      <h2>選單</h2>
-      <button class="active" data-tab="tab-game">即時比賽</button>
-      <button data-tab="tab-manager">經理人</button>
-      <button data-tab="tab-owner">球隊老闆</button>
-      <button data-tab="tab-league">聯賽</button>
-      <button data-tab="tab-social">排行榜/雲端</button>
+<div class="wrap">
+  <header class="header">
+    <div class="brand flex">
+      <img src="/static/assets/logo_lad.svg" width="28" height="28" style="border-radius:6px" id="brandLogo">
+      <div><b id="brandTitle">Baseball Tycoon v5</b><div class="small" id="brandSub">直立最佳化 • PWA</div></div>
     </div>
-  </aside>
-  <section class="content">
-    <div class="card header">
-      <div class="team"><img id="logoAway" src="/static/assets/logo_lad.svg"><span id="nameAway">客隊</span></div>
-      <div class="scorebug">
-        <div class="scoreline">
-          <div class="innings small" id="inningRunAway"></div>
-          <div><b id="scoreAway">0</b> - <b id="scoreHome">0</b></div>
-          <div class="innings small" id="inningRunHome"></div>
-        </div>
-        <div class="count">
-          <span id="inningHalf">1 上</span>
-          <div class="dotset">B: <span class="dot" id="b1"></span><span class="dot" id="b2"></span><span class="dot" id="b3"></span></div>
-          <div class="dotset strike">S: <span class="dot" id="s1"></span><span class="dot" id="s2"></span></div>
-          <div class="dotset out">O: <span class="dot" id="o1"></span><span class="dot" id="o2"></span></div>
-        </div>
+    <div class="scorebug">
+      <div class="scoreSide"><img id="logoAway" src="/static/assets/logo_lad.svg" width="22" height="22" style="border-radius:6px"><span id="nameAway">客隊</span></div>
+      <div class="count">
+        <span id="inningHalf">—</span>
+        <span>B:<span class="dot" id="b1"></span><span class="dot" id="b2"></span><span class="dot" id="b3"></span></span>
+        <span class="strike">S:<span class="dot" id="s1"></span><span class="dot" id="s2"></span></span>
+        <span class="out">O:<span class="dot" id="o1"></span><span class="dot" id="o2"></span></span>
+        <span class="score"><b id="scoreAway">0</b>-<b id="scoreHome">0</b></span>
       </div>
-      <div class="team" style="justify-self:end"><img id="logoHome" src="/static/assets/logo_nyy.svg"><span id="nameHome">主隊</span></div>
+      <div class="scoreSide" style="justify-self:end"><img id="logoHome" src="/static/assets/logo_nyy.svg" width="22" height="22" style="border-radius:6px"><span id="nameHome">主隊</span></div>
     </div>
+  </header>
 
-    <div class="card" id="tab-game">
-      <div class="grid">
-        <div>
-          <div class="banner" id="statusBar">歡迎！請設定對戰並開始新比賽。</div>
-          <div class="kpis" style="margin-top:8px">
-            <div class="kpi"><div class="small">暱稱</div><div id="kNick">-</div></div>
-            <div class="kpi"><div class="small">局數</div><div id="kInning">-</div></div>
-            <div class="kpi"><div class="small">R / H / E</div><div id="kRHE">-</div></div>
-            <div class="kpi"><div class="small">LOB</div><div id="kLOB">-</div></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-            <div>
-              <label>暱稱</label><input id="nickname" placeholder="你的稱呼">
-              <label>客隊</label>
-              <select id="awaySel">
-                <option value="mlb-lad">Dodgers</option>
-                <option value="mlb-nyy">Yankees</option>
-                <option value="npb-han">Hanshin Tigers</option>
-                <option value="kbo-ktw">KT Wiz</option>
-                <option value="cpbl-ctbc">CTBC Brothers</option>
-              </select>
-            </div>
-            <div>
-              <label>主隊</label>
-              <select id="homeSel">
-                <option value="mlb-nyy">Yankees</option>
-                <option value="mlb-lad">Dodgers</option>
-                <option value="npb-han">Hanshin Tigers</option>
-                <option value="kbo-ktw">KT Wiz</option>
-                <option value="cpbl-ctbc">CTBC Brothers</option>
-              </select>
-              <div class="btnrow" style="margin-top:8px">
-                <button id="start" class="primary">開始新比賽</button>
-                <button id="autoHalf">自動半局</button>
-                <button id="autoGame">自動整場</button>
-                <button id="swapPitcher">換投</button>
-                <button id="finalize">強制終場</button>
-              </div>
-            </div>
-          </div>
-
-          <h3 style="margin-top:8px">戰術 / 配球</h3>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div>
-              <label>進攻戰術</label>
-              <select id="offTactic">
-                <option value="swing">一般揮棒</option>
-                <option value="bunt">短打（犧牲觸擊）</option>
-                <option value="steal">盜壘</option>
-                <option value="ibb">故意四壞（守方）</option>
-              </select>
-            </div>
-            <div>
-              <label>投手球種</label>
-              <select id="pitchType">
-                <option value="FF">FF 四縫線</option>
-                <option value="SL">SL 滑球</option>
-                <option value="CH">CH 變速球</option>
-                <option value="CB">CB 曲球</option>
-                <option value="SI">SI 伸卡</option>
-              </select>
-            </div>
-          </div>
-          <div class="btnrow" style="margin-top:8px">
-            <button id="pitch" class="primary">投一球</button>
-          </div>
-
-          <h3 style="margin-top:8px">壘包/對決</h3>
-          <div class="diamond">
-            <div></div><div style="text-align:center">三壘</div><div></div>
-            <div style="text-align:right"><span class="base" id="b3"></span></div><div style="text-align:center"><img src="/static/assets/ball.svg" width="24" alt=""></div><div><span class="base" id="b2"></span></div>
-            <div></div><div style="text-align:center">一壘</div><div></div>
-            <div></div><div style="text-align:center"><span class="base" id="b1"></span></div><div></div>
-          </div>
-          <div class="small" id="matchup">—</div>
-        </div>
-        <div>
-          <h3>比賽轉播</h3>
-          <div id="feed" class="feed" aria-live="polite"></div>
-
-          <h3>Box Score</h3>
-          <div class="box">
-            <div>
-              <div class="small" id="boxAwayName">客隊</div>
-              <table class="table" id="boxAway"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table>
-            </div>
-            <div>
-              <div class="small" id="boxHomeName">主隊</div>
-              <table class="table" id="boxHome"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table>
-            </div>
-          </div>
-        </div>
+  <section id="view-home" class="card">
+    <h3>新檔案 / 遊戲模式</h3>
+    <div class="grid2">
+      <div>
+        <label>模式</label>
+        <select id="modeSel">
+          <option value="owner">球隊老闆</option>
+          <option value="manager">經理人</option>
+          <option value="player">球員生涯</option>
+        </select>
+        <label style="margin-top:6px">聯盟</label>
+        <select id="leagueSel">
+          <option value="mlb">MLB 美國職棒</option>
+          <option value="npb">NPB 日本職棒</option>
+          <option value="kbo">KBO 韓國職棒</option>
+          <option value="cpbl">CPBL 中華職棒</option>
+        </select>
+        <label style="margin-top:6px">選擇球隊</label>
+        <select id="teamSel"></select>
+        <label style="margin-top:6px">暱稱 / 老闆名</label>
+        <input id="nick" placeholder="你的稱呼">
       </div>
-    </div>
-
-    <div class="card" id="tab-manager" style="display:none">
-      <h3>經理人</h3>
-      <p class="small">市場搜尋、報價、交易、球探與選秀（此區沿用 v3，UI 提亮並簡化步驟）。</p>
-      <div class="btnrow"><button id="openMarket" class="primary">開啟市場（示範）</button></div>
-      <div id="marketBox" class="small"></div>
-    </div>
-
-    <div class="card" id="tab-owner" style="display:none">
-      <h3>球隊老闆</h3>
-      <p class="small">票價、容量、贊助、支出/損益看板（此區沿用 v3，色彩與布局優化）。</p>
-      <div class="btnrow"><button class="primary">示範：賣出贊助</button><button>支付薪資</button></div>
-    </div>
-
-    <div class="card" id="tab-league" style="display:none">
-      <h3>聯賽</h3>
-      <p class="small">賽程產生、整季模擬、季後賽（沿用 v3，資訊層級整理）。</p>
-      <div class="btnrow"><button class="primary">產生賽程</button><button>模擬整季</button></div>
-    </div>
-
-    <div class="card" id="tab-social" style="display:none">
-      <h3>排行榜 / 雲端</h3>
-      <p class="small">本機排行榜、（選用）GitHub Gist 同步。</p>
-      <div id="localLeaderboard" class="small"></div>
+      <div>
+        <div class="kpi">
+          <div class="k"><div class="small">賽季場次</div><div id="kGames">-</div></div>
+          <div class="k"><div class="small">季後賽</div><div id="kPlayoffs">-</div></div>
+          <div class="k"><div class="small">DH</div><div id="kDH">-</div></div>
+          <div class="k"><div class="small">隊數</div><div id="kTeams">-</div></div>
+        </div>
+        <div class="btnrow" style="margin-top:8px">
+          <button id="startCareer" class="primary">建立新檔</button>
+          <button id="loadSave">載入存檔</button>
+        </div>
+        <div class="small" id="saveInfo">未建立存檔</div>
+      </div>
     </div>
   </section>
+
+  <section id="view-dash" class="card hidden">
+    <h3>賽程 / 今日看板</h3>
+    <div class="grid1">
+      <div class="small">球季：<span id="seasonLabel">—</span>　戰績：<span id="recordLabel">0-0</span></div>
+      <div class="card" style="padding:8px">
+        <div><b>今日賽事</b></div>
+        <div id="todayGame" class="small">—</div>
+        <div class="btnrow" style="margin-top:8px"><button id="playToday" class="primary">進入比賽</button><button id="simToday">模擬今日</button><button id="simToEnd">模擬整季</button></div>
+      </div>
+      <div>
+        <h3>戰績榜</h3>
+        <table class="table" id="standings"><thead><tr><th>隊名</th><th>W</th><th>L</th><th>PCT</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-game" class="card hidden">
+    <h3>比賽</h3>
+    <div class="grid1">
+      <div class="flex small">對決：<span id="matchup">—</span></div>
+      <div class="diamond">
+        <div></div><div style="text-align:center">三壘</div><div></div>
+        <div style="text-align:right"><span class="base" id="base3"></span></div><div style="text-align:center"><img src="/static/assets/ball.svg" width="20"></div><div><span class="base" id="base2"></span></div>
+        <div></div><div style="text-align:center">一壘</div><div></div>
+        <div></div><div style="text-align:center"><span class="base" id="base1"></span></div><div></div>
+      </div>
+      <div class="grid2">
+        <div><label>進攻戰術</label><select id="offTactic"><option value="swing">一般揮棒</option><option value="bunt">短打（犧牲）</option><option value="steal">盜壘</option><option value="ibb">故意四壞（守方）</option></select></div>
+        <div><label>投手球種</label><select id="pitchType"><option value="FF">FF 四縫線</option><option value="SL">SL 滑球</option><option value="CH">CH 變速球</option><option value="CB">CB 曲球</option><option value="SI">SI 伸卡</option></select></div>
+      </div>
+      <div class="btnrow" style="margin-top:6px">
+        <button id="pitch" class="primary">投一球</button><button id="autoHalf">自動半局</button><button id="autoGame">自動整場</button><button id="swapPitcher">換投</button><button id="leaveGame">返回看板</button>
+      </div>
+      <div><h3>轉播</h3><div class="feed" id="feed" aria-live="polite"></div></div>
+      <div class="grid2">
+        <div><div class="small" id="boxAwayName">客隊</div><table class="table" id="boxAway"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table></div>
+        <div><div class="small" id="boxHomeName">主隊</div><table class="table" id="boxHome"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-roster" class="card hidden"><h3>球員名冊</h3><div id="rosterBox" class="small">—</div></section>
+  <section id="view-league" class="card hidden"><h3>聯盟資訊</h3><div class="small" id="leagueInfo">—</div></section>
+  <section id="view-market" class="card hidden"><h3>市場 / 交易（示範）</h3><div class="small">之後可擴充 Free Agent、交易提案、合約簽署等。</div></section>
 </div>
 
-<div class="final" id="final">
-  <div class="panel">
-    <h3>🏁 比賽結束</h3>
-    <div id="finalLine" class="small"></div>
-    <div id="finalBox" class="small" style="margin-top:8px"></div>
-    <div class="btnrow" style="margin-top:8px"><button id="closeFinal" class="primary">關閉</button></div>
-  </div>
-</div>
+<nav class="bottomnav" id="nav">
+  <a href="#" class="tab active" data-view="home"><img src="/static/assets/nav_home.svg"><span>首頁</span></a>
+  <a href="#" class="tab" data-view="dash"><img src="/static/assets/nav_game.svg"><span>看板</span></a>
+  <a href="#" class="tab" data-view="game"><img src="/static/assets/nav_game.svg"><span>比賽</span></a>
+  <a href="#" class="tab" data-view="roster"><img src="/static/assets/nav_roster.svg"><span>名冊</span></a>
+  <a href="#" class="tab" data-view="league"><img src="/static/assets/nav_league.svg"><span>聯盟</span></a>
+</nav>
 
 <script src="/static/main.js" defer></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}</script>

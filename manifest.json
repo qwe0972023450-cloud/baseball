@@ -1,9 +1,9 @@
 {
-  "name": "Baseball Tycoon v4",
-  "short_name": "Baseball v4",
+  "name": "Baseball Tycoon v5",
+  "short_name": "BB Tycoon",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#061026",
+  "background_color": "#050d1e",
   "theme_color": "#0b3355",
   "icons": [
     {
