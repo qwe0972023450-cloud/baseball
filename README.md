@@ -1,5 +1,5 @@
-# Baseball Tycoon v3 — PWA + Heroku-ready
+# Baseball Tycoon v4 — PWA + Heroku-ready
 
-- Heroku：本專案含 package.json / server.js / Procfile，推上去會自動偵測 Node。
-- GitHub Pages：整包上傳到 repo root，Settings → Pages 啟用即可。
-- v3：戰術（短打/盜壘/故意四壞）、球種（FF/SL/CH/CB/SI）、更具臨場感的轉播文字、Box Score。
+- 側邊欄導覽、行動優化、Scorebug、壘包鑽石。
+- 引擎：疲勞、Reach on Error、R/H/E、LOB、簡化勝敗。
+- Heroku/Pages 皆可直接部署。

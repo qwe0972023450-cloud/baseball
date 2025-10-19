@@ -1,1 +1,172 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Baseball Tycoon — v3</title><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#061026"><link rel="stylesheet" href="/static/style.css"></head><body><div class='bg'><img src='/static/assets/bg.svg' alt='bg'></div><main class='wrap'><header class='topbar'><div class='brand'><img src='/static/assets/avatar2.svg' class='logo'><h1>Baseball Tycoon v3</h1></div><div id='status' class='small'>PWA • 離線可玩</div></header><div class='tabs'><div class='tab active' data-tab='play'>即時比賽</div><div class='tab' data-tab='manager'>經理人</div><div class='tab' data-tab='career'>球員生涯</div><div class='tab' data-tab='owner'>球隊老闆</div><div class='tab' data-tab='league'>聯賽</div><div class='tab' data-tab='social'>排行榜</div></div><section id='play' class='panel'><div class='col'><h3>快速開始</h3><label>暱稱</label><input id='nickname' placeholder='你的稱呼'><label>模式</label><select id='mode'><option value='owner'>球隊老闆</option><option value='agent'>經理人</option><option value='player'>球員生涯</option></select><label>客隊</label><select id='awayTeam'><option value='mlb-nyy'>Yankees</option><option value='mlb-lad'>Dodgers</option><option value='npb-han'>Hanshin Tigers</option><option value='kbo-ktw'>KT Wiz</option><option value='cpbl-ctbc'>CTBC Brothers</option></select><label>主隊</label><select id='homeTeam'><option value='mlb-lad'>Dodgers</option><option value='mlb-nyy'>Yankees</option><option value='npb-han'>Hanshin Tigers</option><option value='kbo-ktw'>KT Wiz</option><option value='cpbl-ctbc'>CTBC Brothers</option></select><div class='scoreboard' style='margin-top:8px'><div id='kAwayName'>客隊</div><div><b id='kAwayR'>0</b>-<b id='kHomeR'>0</b></div><div style='text-align:right' id='kHomeName'>主隊</div></div><div class='button-row' style='margin-top:8px'><button id='start'>開始新比賽</button><button id='load'>讀取存檔</button></div><div id='saveinfo' class='small'>未建立存檔</div><h3>戰術 / 指令</h3><label>進攻戰術</label><select id='offTactic'><option value='swing'>一般揮棒</option><option value='bunt'>短打（犧牲）</option><option value='steal'>盜壘</option><option value='ibb'>故意四壞</option></select><label>投手球種</label><select id='pitchType'><option value='FF'>FF 四縫線</option><option value='SL'>SL 滑球</option><option value='CH'>CH 變速球</option><option value='CB'>CB 曲球</option><option value='SI'>SI 伸卡</option></select><div class='button-row' style='margin-top:8px'><button id='pitch'>投一球</button><button id='autoHalf'>自動半局</button><button id='autoGame'>自動整場</button><button id='swapPitcher'>換投</button><button id='resetMatch'>重置</button></div><div class='small' id='matchup'>—</div></div><div class='col'><h3>比賽轉播</h3><div id='feed' class='feed' aria-live='polite'></div><h3>Box Score</h3><div class='small' id='boxAwayName'>客隊</div><table class='table' id='boxAway'><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table><div class='small' id='boxHomeName' style='margin-top:6px'>主隊</div><table class='table' id='boxHome'><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table></div></section><section id='manager' class='panel' style='display:none'><div class='col'><h3>球員搜尋 / 市場</h3><input id='searchName' placeholder='輸入姓名關鍵字'><div class='button-row'><button id='searchBtn'>搜尋球員</button><button id='listAll'>列全部</button></div><table id='playersTable' class='table'><thead><tr><th>姓名</th><th>位子</th><th>OVR</th><th>合約</th><th>操作</th></tr></thead><tbody></tbody></table></div><div class='col'><h3>合約 / 報價</h3><div id='offersBox' class='small'></div><label>player id</label><input id='offerPid'><label>年薪</label><input id='offerSal' value='80000' type='number'><label>年數</label><input id='offerYears' value='2' type='number'><div class='button-row'><button id='sendOffer'>發送合約</button><button id='refreshOffers'>刷新</button></div><h3 style='margin-top:10px'>交易中心</h3><label>出 (我方 player id)</label><input id='tradeOut'><label>求 (對方 player id)</label><input id='tradeIn'><div class='button-row'><button id='tradeBtn'>提出交易</button></div><div id='tradeMsg' class='small'></div></div></section><section id='career' class='panel' style='display:none'><div class='col'><h3>訓練與成長</h3><label>Player ID</label><input id='careerPid' placeholder='player id'><label>每週訓練時數</label><input id='trainHours' value='5' type='number'><div class='button-row'><button id='trainWeek'>套用訓練週</button><button id='viewStats'>查看球員</button></div><div id='careerResult' class='small'></div></div><div class='col'><h3>名冊</h3><table id='rosterTable' class='table'><thead><tr><th>id</th><th>姓名</th><th>年齡</th><th>OVR</th><th>潛力</th></tr></thead><tbody></tbody></table></div></section><section id='owner' class='panel' style='display:none'><div class='col'><h3>經營數值</h3><div class='small'>現金: <span id='cash'>0</span> • 粉絲: <span id='fans'>0</span> • 口碑: <span id='prestige'>0</span></div><label>票價</label><input id='ticketPrice' value='20' type='number'><label>球場容量</label><input id='stadiumCap' value='12000' type='number'><div class='button-row'><button id='setTicket'>設定票價</button><button id='sellSponsor'>賣贊助</button><button id='paySalaries'>支付薪資</button></div></div><div class='col'><h3>球場升級</h3><label>升級等級</label><input id='upgradeLevel' value='1' type='number'><label>成本</label><input id='upgradeCost' value='150000' type='number'><button id='upgradeBtn'>升級</button></div></section><section id='league' class='panel' style='display:none'><div class='col'><h3>賽季與賽程</h3><label>球隊清單 (逗號分隔 id)</label><input id='leagueTeams' value='mlb-nyy,mlb-lad,npb-han,kbo-ktw,cpbl-ctbc'><label>季節 (年)</label><input id='leagueSeason' value='2025' type='number'><div class='button-row'><button id='genSchedule'>產生賽程</button><button id='runSeason'>模擬整季</button><button id='playoffs'>季後賽</button></div><div id='fixturesBox' class='small'></div></div><div class='col'><h3>排行榜 / 冠軍</h3><div id='leagueTable' class='small'></div></div></section><section id='social' class='panel' style='display:none'><div class='col'><h3>本機排行榜</h3><div id='localLeaderboard' class='small'></div><div class='small'>（選用）GitHub Gist Token：若要雲端同步</div><input id='gistToken' placeholder='ghp_xxx...'><div class='button-row'><button id='pushGist'>上傳排行榜</button><button id='pullGist'>下載排行榜</button></div></div><div class='col'><h3>匯入 / 匯出存檔</h3><button id='exportSave'>匯出存檔</button><button id='importSave'>匯入存檔</button><input id='importFile' type='file' style='display:none'></div></section><div class='footer small'>版本 v3 • PWA + Heroku-ready • 由 ChatGPT 產生</div></main><script src='/static/main.js' defer></script><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}</script></body></html>
+<!doctype html><html lang="zh-Hant"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Baseball Tycoon — v4</title>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#061026">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="/static/style.css">
+</head><body>
+<div class="bg"><img src="/static/assets/bg.svg" alt=""></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="nav">
+      <h2>選單</h2>
+      <button class="active" data-tab="tab-game">即時比賽</button>
+      <button data-tab="tab-manager">經理人</button>
+      <button data-tab="tab-owner">球隊老闆</button>
+      <button data-tab="tab-league">聯賽</button>
+      <button data-tab="tab-social">排行榜/雲端</button>
+    </div>
+  </aside>
+  <section class="content">
+    <div class="card header">
+      <div class="team"><img id="logoAway" src="/static/assets/logo_lad.svg"><span id="nameAway">客隊</span></div>
+      <div class="scorebug">
+        <div class="scoreline">
+          <div class="innings small" id="inningRunAway"></div>
+          <div><b id="scoreAway">0</b> - <b id="scoreHome">0</b></div>
+          <div class="innings small" id="inningRunHome"></div>
+        </div>
+        <div class="count">
+          <span id="inningHalf">1 上</span>
+          <div class="dotset">B: <span class="dot" id="b1"></span><span class="dot" id="b2"></span><span class="dot" id="b3"></span></div>
+          <div class="dotset strike">S: <span class="dot" id="s1"></span><span class="dot" id="s2"></span></div>
+          <div class="dotset out">O: <span class="dot" id="o1"></span><span class="dot" id="o2"></span></div>
+        </div>
+      </div>
+      <div class="team" style="justify-self:end"><img id="logoHome" src="/static/assets/logo_nyy.svg"><span id="nameHome">主隊</span></div>
+    </div>
+
+    <div class="card" id="tab-game">
+      <div class="grid">
+        <div>
+          <div class="banner" id="statusBar">歡迎！請設定對戰並開始新比賽。</div>
+          <div class="kpis" style="margin-top:8px">
+            <div class="kpi"><div class="small">暱稱</div><div id="kNick">-</div></div>
+            <div class="kpi"><div class="small">局數</div><div id="kInning">-</div></div>
+            <div class="kpi"><div class="small">R / H / E</div><div id="kRHE">-</div></div>
+            <div class="kpi"><div class="small">LOB</div><div id="kLOB">-</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+            <div>
+              <label>暱稱</label><input id="nickname" placeholder="你的稱呼">
+              <label>客隊</label>
+              <select id="awaySel">
+                <option value="mlb-lad">Dodgers</option>
+                <option value="mlb-nyy">Yankees</option>
+                <option value="npb-han">Hanshin Tigers</option>
+                <option value="kbo-ktw">KT Wiz</option>
+                <option value="cpbl-ctbc">CTBC Brothers</option>
+              </select>
+            </div>
+            <div>
+              <label>主隊</label>
+              <select id="homeSel">
+                <option value="mlb-nyy">Yankees</option>
+                <option value="mlb-lad">Dodgers</option>
+                <option value="npb-han">Hanshin Tigers</option>
+                <option value="kbo-ktw">KT Wiz</option>
+                <option value="cpbl-ctbc">CTBC Brothers</option>
+              </select>
+              <div class="btnrow" style="margin-top:8px">
+                <button id="start" class="primary">開始新比賽</button>
+                <button id="autoHalf">自動半局</button>
+                <button id="autoGame">自動整場</button>
+                <button id="swapPitcher">換投</button>
+                <button id="finalize">強制終場</button>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="margin-top:8px">戰術 / 配球</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label>進攻戰術</label>
+              <select id="offTactic">
+                <option value="swing">一般揮棒</option>
+                <option value="bunt">短打（犧牲觸擊）</option>
+                <option value="steal">盜壘</option>
+                <option value="ibb">故意四壞（守方）</option>
+              </select>
+            </div>
+            <div>
+              <label>投手球種</label>
+              <select id="pitchType">
+                <option value="FF">FF 四縫線</option>
+                <option value="SL">SL 滑球</option>
+                <option value="CH">CH 變速球</option>
+                <option value="CB">CB 曲球</option>
+                <option value="SI">SI 伸卡</option>
+              </select>
+            </div>
+          </div>
+          <div class="btnrow" style="margin-top:8px">
+            <button id="pitch" class="primary">投一球</button>
+          </div>
+
+          <h3 style="margin-top:8px">壘包/對決</h3>
+          <div class="diamond">
+            <div></div><div style="text-align:center">三壘</div><div></div>
+            <div style="text-align:right"><span class="base" id="b3"></span></div><div style="text-align:center"><img src="/static/assets/ball.svg" width="24" alt=""></div><div><span class="base" id="b2"></span></div>
+            <div></div><div style="text-align:center">一壘</div><div></div>
+            <div></div><div style="text-align:center"><span class="base" id="b1"></span></div><div></div>
+          </div>
+          <div class="small" id="matchup">—</div>
+        </div>
+        <div>
+          <h3>比賽轉播</h3>
+          <div id="feed" class="feed" aria-live="polite"></div>
+
+          <h3>Box Score</h3>
+          <div class="box">
+            <div>
+              <div class="small" id="boxAwayName">客隊</div>
+              <table class="table" id="boxAway"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table>
+            </div>
+            <div>
+              <div class="small" id="boxHomeName">主隊</div>
+              <table class="table" id="boxHome"><thead><tr><th>打者</th><th>AB</th><th>H</th><th>R</th><th>RBI</th><th>BB</th><th>K</th><th>HR</th></tr></thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="tab-manager" style="display:none">
+      <h3>經理人</h3>
+      <p class="small">市場搜尋、報價、交易、球探與選秀（此區沿用 v3，UI 提亮並簡化步驟）。</p>
+      <div class="btnrow"><button id="openMarket" class="primary">開啟市場（示範）</button></div>
+      <div id="marketBox" class="small"></div>
+    </div>
+
+    <div class="card" id="tab-owner" style="display:none">
+      <h3>球隊老闆</h3>
+      <p class="small">票價、容量、贊助、支出/損益看板（此區沿用 v3，色彩與布局優化）。</p>
+      <div class="btnrow"><button class="primary">示範：賣出贊助</button><button>支付薪資</button></div>
+    </div>
+
+    <div class="card" id="tab-league" style="display:none">
+      <h3>聯賽</h3>
+      <p class="small">賽程產生、整季模擬、季後賽（沿用 v3，資訊層級整理）。</p>
+      <div class="btnrow"><button class="primary">產生賽程</button><button>模擬整季</button></div>
+    </div>
+
+    <div class="card" id="tab-social" style="display:none">
+      <h3>排行榜 / 雲端</h3>
+      <p class="small">本機排行榜、（選用）GitHub Gist 同步。</p>
+      <div id="localLeaderboard" class="small"></div>
+    </div>
+  </section>
+</div>
+
+<div class="final" id="final">
+  <div class="panel">
+    <h3>🏁 比賽結束</h3>
+    <div id="finalLine" class="small"></div>
+    <div id="finalBox" class="small" style="margin-top:8px"></div>
+    <div class="btnrow" style="margin-top:8px"><button id="closeFinal" class="primary">關閉</button></div>
+  </div>
+</div>
+
+<script src="/static/main.js" defer></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}</script>
+</body></html>
