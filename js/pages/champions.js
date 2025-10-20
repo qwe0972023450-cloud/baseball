@@ -1,12 +1,7 @@
 
-Router.register("champions", ()=>{
-  const years = Object.keys(STATE.champions).sort((a,b)=>b-a);
-  const blocks = years.map(y=>{
-    const row = LEAGUES.map(l=>`<tr><td>${l.name}</td><td>${STATE.champions[y][l.id]||"-"}</td></tr>`).join("");
-    return `<div class="panel">
-      <div class="panel-header"><h3>${y} 冠軍列表</h3></div>
-      <table class="table"><thead><tr><th>聯盟</th><th>冠軍隊伍</th></tr></thead><tbody>${row}</tbody></table>
-    </div>`;
-  }).join("");
-  return `<div class="grid grid-2">${blocks || '<div class="panel"><div class="notice">尚未產生年度冠軍，請推進到季末（52 週）。</div></div>'}</div>`;
-});
+function ChampionsPage(){
+  const container = document.getElementById('app');
+  const champs = (Game?.calendar?.champions) || JSON.parse(localStorage.getItem('champions')||'[]');
+  const rows = champs.map(c=>`<tr><td>${c.year}</td><td>${c.league}</td><td>${c.team}</td></tr>`).join('');
+  container.innerHTML = `<h2>歷屆聯盟冠軍</h2><table class="table"><thead><tr><th>年份</th><th>聯盟</th><th>冠軍球隊</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
