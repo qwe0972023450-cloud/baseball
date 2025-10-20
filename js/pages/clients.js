@@ -4,7 +4,7 @@ function clientRow(p, idx){
   const inj = p.injury ? `<span class="badge" style="background:#5b1e2e;border-color:#802942">傷：${p.injury.type}</span>` : "";
   return `<tr>
     <td>${idx+1}</td>
-    <td><b>${p.name}</b><div class="muted">${p.age} 歲</div></td>
+    <td><b>${p.name}</b><div class="muted">${p.age} 歲・${(p.nation&&p.nation[0])||''}</div></td>
     <td>${p.pos}<div class="muted">${p.bats}打/${p.throws}投</div></td>
     <td>${p.ovr}</td>
     <td>
@@ -13,6 +13,7 @@ function clientRow(p, idx){
     </td>
     <td>${teamLabel} ${inj}</td>
     <td>${p.salary? fmtMoney(p.salary) : "-"}</td>
+    <td><span class="badge" style="background:${(p.teamRating||6)>=8?'#0f5132':'#4d6f91'};border-color:#234">${(p.teamRating||6).toFixed? (p.teamRating).toFixed(1) : p.teamRating}</span><div class="muted">${p.status||''}</div></td>
     <td class="flex">
       <button class="btn sm" onclick="UI.viewClient('${p.id}')">查看</button>
       <button class="btn sm secondary" onclick="UI.openSign('${p.id}')">簽約</button>
@@ -126,7 +127,7 @@ Router.register("clients", ()=>{
     <table class="table">
       <thead>
         <tr>
-          <th>#</th><th>姓名</th><th>位置/投打</th><th>OVR</th><th>能力</th><th>球隊</th><th>週薪</th><th>操作</th>
+          <th>#</th><th>姓名</th><th>位置/投打</th><th>OVR</th><th>能力</th><th>球隊</th><th>週薪</th><th>評分</th><th>操作</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
