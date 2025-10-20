@@ -1,0 +1,145 @@
+{
+  "CBL": {
+    "level": 1,
+    "gamesPerTeam": 60,
+    "divisions": {
+      "CBL": [
+        "Beijing Tigers",
+        "Shanghai Golden Eagles",
+        "Guangzhou Dragons",
+        "Shenzhen Mariners",
+        "Tianjin Lions",
+        "Chengdu Pandas"
+      ]
+    }
+  },
+  "ABL": {
+    "level": 1,
+    "gamesPerTeam": 40,
+    "divisions": {
+      "ABL": [
+        "Adelaide Giants",
+        "Brisbane Bandits",
+        "Canberra Cavalry",
+        "Melbourne Aces",
+        "Perth Heat",
+        "Sydney Blue Sox",
+        "Auckland Tuatara"
+      ]
+    }
+  },
+  "KBO": {
+    "level": 2,
+    "gamesPerTeam": 144,
+    "divisions": {
+      "KBO": [
+        "Doosan Bears",
+        "Hanwha Eagles",
+        "Kiwoom Heroes",
+        "KIA Tigers",
+        "KT Wiz",
+        "LG Twins",
+        "Lotte Giants",
+        "NC Dinos",
+        "SSG Landers",
+        "Samsung Lions"
+      ]
+    }
+  },
+  "CPBL": {
+    "level": 2,
+    "gamesPerTeam": 120,
+    "divisions": {
+      "CPBL": [
+        "CTBC Brothers",
+        "Rakuten Monkeys",
+        "Fubon Guardians",
+        "Uni-President 7-ELEVEN Lions",
+        "Wei Chuan Dragons",
+        "TSG Hawks"
+      ]
+    }
+  },
+  "NPB_CL": {
+    "level": 3,
+    "gamesPerTeam": 143,
+    "divisions": {
+      "Central League": [
+        "Yomiuri Giants",
+        "Hanshin Tigers",
+        "Chunichi Dragons",
+        "Hiroshima Toyo Carp",
+        "Yokohama DeNA BayStars",
+        "Tokyo Yakult Swallows"
+      ]
+    }
+  },
+  "NPB_PL": {
+    "level": 3,
+    "gamesPerTeam": 143,
+    "divisions": {
+      "Pacific League": [
+        "Orix Buffaloes",
+        "Fukuoka SoftBank Hawks",
+        "Hokkaido Nippon-Ham Fighters",
+        "Chiba Lotte Marines",
+        "Tohoku Rakuten Golden Eagles",
+        "Saitama Seibu Lions"
+      ]
+    }
+  },
+  "MLB_AL": {
+    "level": 4,
+    "gamesPerTeam": 162,
+    "divisions": {
+      "AL East": [
+        "New York Yankees",
+        "Boston Red Sox",
+        "Toronto Blue Jays",
+        "Tampa Bay Rays",
+        "Baltimore Orioles"
+      ],
+      "AL Central": [
+        "Cleveland Guardians",
+        "Minnesota Twins",
+        "Chicago White Sox",
+        "Detroit Tigers",
+        "Kansas City Royals"
+      ],
+      "AL West": [
+        "Houston Astros",
+        "Texas Rangers",
+        "Seattle Mariners",
+        "Los Angeles Angels",
+        "Oakland Athletics"
+      ]
+    }
+  },
+  "MLB_NL": {
+    "level": 4,
+    "gamesPerTeam": 162,
+    "divisions": {
+      "NL East": [
+        "Atlanta Braves",
+        "Philadelphia Phillies",
+        "New York Mets",
+        "Miami Marlins",
+        "Washington Nationals"
+      ],
+      "NL Central": [
+        "Milwaukee Brewers",
+        "Chicago Cubs",
+        "Cincinnati Reds",
+        "Pittsburgh Pirates",
+        "St. Louis Cardinals"
+      ],
+      "NL West": [
+        "Los Angeles Dodgers",
+        "San Diego Padres",
+        "San Francisco Giants",
+        "Arizona Diamondbacks",
+        "Colorado Rockies"
+      ]
+    }
+  }
+}
