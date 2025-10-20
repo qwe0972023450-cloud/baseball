@@ -1,8 +1,9 @@
 
-const VERSION = "1.1";
+const VERSION = "1.2";
 
 // ---------- State ----------
 const STATE = {
+  ui:{leagueTab:'CNBL'},
   year: 2034,
   week: 1,
   fame: 50, // 0-1000
@@ -40,6 +41,7 @@ function calcOVR(p){
   return Math.round(k*bat + (1.2-k)*pit + 0.5*field);
 }
 function makePlayer(seedTier=null){
+  let p_nation=null;
   const pos = randomChoice(POSITIONS);
   const bats = Math.random()<0.5? "R":"L";
   const throws = Math.random()<0.5? "R":"L";
@@ -47,7 +49,10 @@ function makePlayer(seedTier=null){
   if(seedTier){ base += (seedTier-3)*8; } // higher tier slightly better pool
   const p = {
     id: Math.random().toString(36).slice(2),
-    name: randName(),
+    /* name & nationality */
+    (function(){ const id=randIdentity(); p_nation=id; return ''; })(),
+    name: (p_nation&&p_nation.name)||'Player',
+    nation: (p_nation&&[p_nation.countryName,p_nation.countryCode])||['USA','US'],
     age: rand(17,34),
     pos,
     bats, throws,
@@ -74,9 +79,14 @@ function makePlayer(seedTier=null){
     salary: 0,
     endorsements: [],
     contractWeeks: 0,
+    contract: { option: randomChoice(['無','球員選擇權','球隊選擇權','互相選擇權']), buyout: Math.round( rand(50000,300000) ), arbitrationYears: Math.floor(rand(0,3)) },
+    weeklyStats:{AB:0,H:0,HR:0,OPS:0,ERA:0,WHIP:0,K:0},
+    seasonStats:{AB:0,H:0,HR:0,OPS:0,ERA:0,WHIP:0,K:0},
+    teamRating: 6.0, status: '固定先發',
+
   };
   p.ovr = calcOVR(p);
-  return p;
+  return p; p;
 }
 
 function seedPools(){
@@ -145,7 +155,7 @@ function trySign(player, leagueId, teamName){
     player.contractWeeks = 52*rand(1,3);
     const fee = Math.round(player.salary * STATE.commission.salary);
     STATE.cash += fee;
-    STATE.finance.income.push({type:"薪資佣金", amount:fee, note:`${player.name} @ ${league.name} ${teamName}`});
+    STATE.finance.income.push({week:STATE.week, type:"薪資佣金", amount:fee, note:`${player.name} @ ${league.name} ${teamName}`});
     addNews(`✅ 簽約成功：${player.name} 加入 ${league.name} - ${teamName}；週薪 ${fmtMoney(player.salary)}，佣金入帳 ${fmtMoney(fee)}。`);
   }else{
     addNews(`❌ 簽約失敗：${player.name} 嘗試加入 ${league.name} - ${teamName} 未果（機率 ${chance}% 擲出 ${roll}）。`);
@@ -179,6 +189,52 @@ function simulateTeamSeason(league){
       if(t){ t.score += (p.ovr-60)*0.25; }
     }
   });
+  // weekly performance + rating/status mapping + news
+  STATE.clients.forEach(p=>{
+    const isPitcher = p.pos.includes("投手");
+    if(isPitcher){
+      // rough pitcher week
+      const K = Math.round(rand(2,12) * (p.vel + p.control + p.movement + p.breaking)/260);
+      const ERA = +(2.5 + (5.0*(70-p.ovr)/70)).toFixed(2);
+      const WHIP = +(0.9 + (1.6*(70-p.ovr)/70)).toFixed(2);
+      p.weeklyStats = {AB:0,H:0,HR:0,OPS:0,ERA,WHIP,K};
+    }else{
+      const AB = Math.floor(rand(10,22));
+      const hitSkill = (p.hitL+p.hitR+p.eye+p.discipline)/4;
+      const H = Math.max(0, Math.round(AB * (0.18 + (hitSkill-50)/300)));
+      const HR = Math.max(0, Math.round(H * (0.12 + (p.power-50)/300)));
+      const OPS = +(0.600 + (hitSkill-50)/180 + HR*0.01).toFixed(3);
+      p.weeklyStats = {AB,H,HR,OPS,ERA:0,WHIP:0,K:0};
+    }
+    // accumulate
+    Object.keys(p.weeklyStats).forEach(k=> p.seasonStats[k] += p.weeklyStats[k]||0);
+
+    // compute 1–10 rating with league/tier difficulty
+    const tier = p.team ? p.team.tier : 1;
+    const teamFactor = 0.9 + (tier-3)*0.05; // higher tier harder
+    let base = (p.ovr/10) * 0.7 + (p.morale/100)*2.0*0.3;
+    base = base / (1.0 + (tier-3)*0.08);
+    p.teamRating = Math.max(1, Math.min(10, +(base.toFixed(1))));
+
+    let status = '固定先發';
+    if(p.teamRating<2){ status='釋出'; p.team=null; }
+    else if(p.teamRating<4){ status='讓渡名單'; }
+    else if(p.teamRating<6){ status='不續約'; }
+    else if(p.teamRating<=8){ status='固定先發'; }
+    else if(p.teamRating<=9){ status='當家球星'; }
+    else { status='全球頂級球星'; }
+    p.status = status;
+
+    addNews(`📰 週報：${p.name} 評分 ${p.teamRating}（${status}）`);
+  });
+  // random scout discovery
+  if(Math.random()<0.35){
+    const prospect = makePlayer();
+    STATE.playersPool.unshift(prospect);
+    addNews(`🔎 球探發現可簽約球員：${prospect.name}（潛力 ${prospect.potential}）`);
+  }
+
+
   // pick champion by highest score + noise
   teams.forEach(t=> t.score += Math.random()*5 );
   teams.sort((a,b)=>b.score-a.score);
@@ -224,17 +280,18 @@ function weeklyTick(){
   // passive costs
   const ops = 300_000 + STATE.staff.scout*100 + STATE.staff.negotiator*120 + STATE.staff.coach*110;
   STATE.cash -= ops;
-  STATE.finance.expense.push({type:"營運", amount:ops, note:"週期成本"});
+  STATE.finance.expense.push({week:STATE.week, type:"營運", amount:ops, note:"週期成本"});
   // endorsements chance
   STATE.clients.forEach(p=>{
     if(p.team && Math.random()<0.05){
       const fee = rand(30_000, 160_000);
       const cut = Math.round(fee * STATE.commission.endorsement);
       STATE.cash += cut;
-      STATE.finance.income.push({type:"代言提成", amount:cut, note:`${p.name}`});
+      STATE.finance.income.push({week:STATE.week, type:"代言提成", amount:cut, note:`${p.name}`});
       addNews(`📣 代言：${p.name} 獲得代言金 ${fmtMoney(fee)}（提成 ${fmtMoney(cut)}）`);
     }
     if(p.contractWeeks>0) p.contractWeeks -= 1;
+      if(p.salary){ const com = Math.round(p.salary * STATE.commission.salary); STATE.cash += com; STATE.finance.income.push({week:STATE.week,type:"薪資提成",amount:com,note:p.name}); }
   });
   // random injuries (minor)
   STATE.clients.forEach(p=>{
