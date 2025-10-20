@@ -1,9 +1,135 @@
 
-const VERSION = "1.2";
+// === Calendar & Season Control ===
+window.Game = window.Game || {};
+Game.calendar = Game.calendar || {
+  year: 2129,
+  week: 1,
+  regularSeasonWeeks: 40 + Math.floor(Math.random()*6), // 40-45
+  phase: "regular", // "regular" | "playoffs" | "off"
+  champions: JSON.parse(localStorage.getItem("champions")||"[]")
+};
+
+// ensure players have season stats
+function ensureSeasonStats(p){
+  if(!p.season){ p.season = {G:0, AB:0, H:0, HR:0, RBI:0, R:0, AVG:0, OPS:0, ratingHistory:[], avgRating:5, weeksBelow2:0, status:""}; }
+}
+
+// simulate weekly performance and rating 1-10
+function simulatePlayerWeek(p){
+  ensureSeasonStats(p);
+  const base = (p.ovr||60) / 10; // 6..10
+  let rating = Math.max(1, Math.min(10, (base + (Math.random()*2-1) + (Math.random()*2-1))));
+  rating = Math.round(rating*10)/10;
+  p.season.ratingHistory.push(rating);
+  p.season.avgRating = p.season.ratingHistory.reduce((a,b)=>a+b,0)/p.season.ratingHistory.length;
+
+  // rudimentary stat box, tied to rating
+  const AB = 18 + Math.floor(Math.random()*6); // games in the week ~ 6
+  const hits = Math.max(0, Math.round(AB * (rating/12)));
+  const hr = Math.random()<rating/20 ? 1:0;
+  p.season.G += 6;
+  p.season.AB += AB;
+  p.season.H += hits;
+  p.season.HR += hr;
+  p.season.RBI += Math.round(rating*0.8);
+  p.season.R += Math.round(rating*0.6);
+  p.season.AVG = p.season.AB ? (p.season.H / p.season.AB) : 0;
+  p.season.OPS = Math.min(1.400, p.season.AVG + 0.35 + rating*0.03);
+  return rating;
+}
+
+// playoffs: top team per league by teamWins, simple best-of-3
+function maybeStartPlayoffs(){
+  if(Game.calendar.phase==="regular" && Game.calendar.week>Game.calendar.regularSeasonWeeks){
+    Game.calendar.phase="playoffs";
+    // determine league winners
+    const leagues = Object.keys(TEAMS_BY_LEAGUE);
+    Game.playoffs = leagues.map(lg=>{
+      const teams = TEAMS_BY_LEAGUE[lg];
+      teams.sort((a,b)=>(b.w||0)-(a.w||0));
+      return {league:lg, champion:teams[0]?.name||teams[0]};
+    });
+  }
+}
+
+function finishPlayoffsAndCrownChampions(){
+  if(Game.calendar.phase!=="playoffs") return;
+  const champs = Game.playoffs.map(p=>({year:Game.calendar.year, league:p.league, team:p.champion}));
+  Game.calendar.champions.push(...champs);
+  localStorage.setItem("champions", JSON.stringify(Game.calendar.champions));
+  Game.calendar.phase="off";
+}
+
+// advance one week: simulate ratings, dev, evaluation, retirements, random news
+function nextWeek(){
+  const allPlayers = getAllPlayers();
+  let weekly = [];
+  for(const p of allPlayers){
+    ensureSeasonStats(p);
+    const r = simulatePlayerWeek(p);
+    weekly.push({name:p.name, rating:r, team:p.team});
+    progressFromRating(p, r);
+    // evaluation buckets rules
+    if(p.season.avgRating<2){
+      p.season.weeksBelow2++;
+      if(p.season.weeksBelow2>=4){ p.status="解約"; }
+    }else{
+      p.season.weeksBelow2=0;
+      const b = evalBucket(p.season.avgRating);
+      p.status = b.label;
+      if(b.action==="waive") p.waived=true;
+    }
+    // aging & retirement
+    agingAndRetirement(p, p.age||27);
+  }
+
+  // best & worst for news
+  weekly.sort((a,b)=>b.rating-a.rating);
+  const best = weekly[0], worst = weekly[weekly.length-1];
+  pushWeeklyNews(best, worst);
+
+  // team W/L random sim
+  for(const [lg, teams] of Object.entries(TEAMS_BY_LEAGUE)){
+    for(const tm of teams){
+      tm.w = (tm.w||0) + Math.round(Math.random()*4);
+      tm.l = (tm.l||0) + Math.round(Math.random()*4);
+    }
+  }
+
+  Game.calendar.week++;
+  if(Game.calendar.week===Game.calendar.regularSeasonWeeks+1) maybeStartPlayoffs();
+  if(Game.calendar.phase==="playoffs" && Game.calendar.week===Game.calendar.regularSeasonWeeks+3) finishPlayoffsAndCrownChampions();
+}
+
+// News paper mode
+function pushWeeklyNews(best, worst){
+  const news = JSON.parse(localStorage.getItem("news")||"[]");
+  const item = {
+    week: Game.calendar.week,
+    year: Game.calendar.year,
+    title: `第${Game.calendar.week}週棒球週報`,
+    best: best, worst: worst,
+    body: `${best.team} 的 ${best.name} 狀況火燙，本週評分 ${best.rating.toFixed(1)}。而 ${worst.team} 的 ${worst.name} 狀態低迷，只有 ${worst.rating.toFixed(1)}。`,
+    ts: Date.now()
+  };
+  news.unshift(item);
+  while(news.length>100) news.pop();
+  localStorage.setItem("news", JSON.stringify(news));
+}
+
+// helpers to access all players (generated in clients.js)
+function getAllPlayers(){
+  if(window.PLAYERS) return window.PLAYERS;
+  window.PLAYERS = generatePlayers(120); // default pool
+  return window.PLAYERS;
+}
+
+
+
+const VERSION = "1.1";
 
 // ---------- State ----------
 const STATE = {
-  ui:{leagueTab:'CNBL'},
   year: 2034,
   week: 1,
   fame: 50, // 0-1000
@@ -41,7 +167,6 @@ function calcOVR(p){
   return Math.round(k*bat + (1.2-k)*pit + 0.5*field);
 }
 function makePlayer(seedTier=null){
-  let p_nation=null;
   const pos = randomChoice(POSITIONS);
   const bats = Math.random()<0.5? "R":"L";
   const throws = Math.random()<0.5? "R":"L";
@@ -49,10 +174,7 @@ function makePlayer(seedTier=null){
   if(seedTier){ base += (seedTier-3)*8; } // higher tier slightly better pool
   const p = {
     id: Math.random().toString(36).slice(2),
-    /* name & nationality */
-    (function(){ const id=randIdentity(); p_nation=id; return ''; })(),
-    name: (p_nation&&p_nation.name)||'Player',
-    nation: (p_nation&&[p_nation.countryName,p_nation.countryCode])||['USA','US'],
+    name: randName(),
     age: rand(17,34),
     pos,
     bats, throws,
@@ -79,14 +201,9 @@ function makePlayer(seedTier=null){
     salary: 0,
     endorsements: [],
     contractWeeks: 0,
-    contract: { option: randomChoice(['無','球員選擇權','球隊選擇權','互相選擇權']), buyout: Math.round( rand(50000,300000) ), arbitrationYears: Math.floor(rand(0,3)) },
-    weeklyStats:{AB:0,H:0,HR:0,OPS:0,ERA:0,WHIP:0,K:0},
-    seasonStats:{AB:0,H:0,HR:0,OPS:0,ERA:0,WHIP:0,K:0},
-    teamRating: 6.0, status: '固定先發',
-
   };
   p.ovr = calcOVR(p);
-  return p; p;
+  return p;
 }
 
 function seedPools(){
@@ -155,7 +272,7 @@ function trySign(player, leagueId, teamName){
     player.contractWeeks = 52*rand(1,3);
     const fee = Math.round(player.salary * STATE.commission.salary);
     STATE.cash += fee;
-    STATE.finance.income.push({week:STATE.week, type:"薪資佣金", amount:fee, note:`${player.name} @ ${league.name} ${teamName}`});
+    STATE.finance.income.push({type:"薪資佣金", amount:fee, note:`${player.name} @ ${league.name} ${teamName}`});
     addNews(`✅ 簽約成功：${player.name} 加入 ${league.name} - ${teamName}；週薪 ${fmtMoney(player.salary)}，佣金入帳 ${fmtMoney(fee)}。`);
   }else{
     addNews(`❌ 簽約失敗：${player.name} 嘗試加入 ${league.name} - ${teamName} 未果（機率 ${chance}% 擲出 ${roll}）。`);
@@ -189,52 +306,6 @@ function simulateTeamSeason(league){
       if(t){ t.score += (p.ovr-60)*0.25; }
     }
   });
-  // weekly performance + rating/status mapping + news
-  STATE.clients.forEach(p=>{
-    const isPitcher = p.pos.includes("投手");
-    if(isPitcher){
-      // rough pitcher week
-      const K = Math.round(rand(2,12) * (p.vel + p.control + p.movement + p.breaking)/260);
-      const ERA = +(2.5 + (5.0*(70-p.ovr)/70)).toFixed(2);
-      const WHIP = +(0.9 + (1.6*(70-p.ovr)/70)).toFixed(2);
-      p.weeklyStats = {AB:0,H:0,HR:0,OPS:0,ERA,WHIP,K};
-    }else{
-      const AB = Math.floor(rand(10,22));
-      const hitSkill = (p.hitL+p.hitR+p.eye+p.discipline)/4;
-      const H = Math.max(0, Math.round(AB * (0.18 + (hitSkill-50)/300)));
-      const HR = Math.max(0, Math.round(H * (0.12 + (p.power-50)/300)));
-      const OPS = +(0.600 + (hitSkill-50)/180 + HR*0.01).toFixed(3);
-      p.weeklyStats = {AB,H,HR,OPS,ERA:0,WHIP:0,K:0};
-    }
-    // accumulate
-    Object.keys(p.weeklyStats).forEach(k=> p.seasonStats[k] += p.weeklyStats[k]||0);
-
-    // compute 1–10 rating with league/tier difficulty
-    const tier = p.team ? p.team.tier : 1;
-    const teamFactor = 0.9 + (tier-3)*0.05; // higher tier harder
-    let base = (p.ovr/10) * 0.7 + (p.morale/100)*2.0*0.3;
-    base = base / (1.0 + (tier-3)*0.08);
-    p.teamRating = Math.max(1, Math.min(10, +(base.toFixed(1))));
-
-    let status = '固定先發';
-    if(p.teamRating<2){ status='釋出'; p.team=null; }
-    else if(p.teamRating<4){ status='讓渡名單'; }
-    else if(p.teamRating<6){ status='不續約'; }
-    else if(p.teamRating<=8){ status='固定先發'; }
-    else if(p.teamRating<=9){ status='當家球星'; }
-    else { status='全球頂級球星'; }
-    p.status = status;
-
-    addNews(`📰 週報：${p.name} 評分 ${p.teamRating}（${status}）`);
-  });
-  // random scout discovery
-  if(Math.random()<0.35){
-    const prospect = makePlayer();
-    STATE.playersPool.unshift(prospect);
-    addNews(`🔎 球探發現可簽約球員：${prospect.name}（潛力 ${prospect.potential}）`);
-  }
-
-
   // pick champion by highest score + noise
   teams.forEach(t=> t.score += Math.random()*5 );
   teams.sort((a,b)=>b.score-a.score);
@@ -280,18 +351,17 @@ function weeklyTick(){
   // passive costs
   const ops = 300_000 + STATE.staff.scout*100 + STATE.staff.negotiator*120 + STATE.staff.coach*110;
   STATE.cash -= ops;
-  STATE.finance.expense.push({week:STATE.week, type:"營運", amount:ops, note:"週期成本"});
+  STATE.finance.expense.push({type:"營運", amount:ops, note:"週期成本"});
   // endorsements chance
   STATE.clients.forEach(p=>{
     if(p.team && Math.random()<0.05){
       const fee = rand(30_000, 160_000);
       const cut = Math.round(fee * STATE.commission.endorsement);
       STATE.cash += cut;
-      STATE.finance.income.push({week:STATE.week, type:"代言提成", amount:cut, note:`${p.name}`});
+      STATE.finance.income.push({type:"代言提成", amount:cut, note:`${p.name}`});
       addNews(`📣 代言：${p.name} 獲得代言金 ${fmtMoney(fee)}（提成 ${fmtMoney(cut)}）`);
     }
     if(p.contractWeeks>0) p.contractWeeks -= 1;
-      if(p.salary){ const com = Math.round(p.salary * STATE.commission.salary); STATE.cash += com; STATE.finance.income.push({week:STATE.week,type:"薪資提成",amount:com,note:p.name}); }
   });
   // random injuries (minor)
   STATE.clients.forEach(p=>{
@@ -325,3 +395,52 @@ window.leagueById = leagueById;
 window.signDifficulty = signDifficulty;
 window.addNews = addNews;
 window.init = init;
+
+
+// player generation using real MLB list when available
+function generatePlayers(n){
+  const out = [];
+  const source = (typeof MLB_PLAYERS !== 'undefined' && MLB_PLAYERS.length) ? MLB_PLAYERS : null;
+  const teamsSeen = new Set();
+  for(let i=0;i<n;i++){
+    let name, team, pos, salary;
+    if(source){
+      const s = MLB_PLAYERS[i % MLB_PLAYERS.length];
+      name = s.name;
+      team = s.team;
+      pos = s.pos;
+      salary = s.salary/1000/1000; // convert to thousands later
+      teamsSeen.add(team);
+    }else{
+      name = randName();
+      team = SAMPLE_TEAMS[Math.floor(Math.random()*SAMPLE_TEAMS.length)];
+      pos = POSITIONS[Math.floor(Math.random()*POSITIONS.length)];
+    }
+    const p = {
+      id: 'p'+(1000+i),
+      name, team, pos,
+      ovr: 60 + Math.floor(Math.random()*40),
+      salary: 120 + Math.floor(Math.random()*220), // thousand USD
+      age: 21 + Math.floor(Math.random()*15),
+      potential: 80 + Math.floor(Math.random()*30)
+    };
+    ensureSeasonStats(p);
+    out.push(p);
+  }
+  return out;
+}
+
+// Provide teams by league for standings & playoffs
+const TEAMS_BY_LEAGUE = {
+  "美國聯盟": [
+    {name:"New York Yankees"},{name:"Boston Red Sox"},{name:"Toronto Blue Jays"},
+    {name:"Houston Astros"},{name:"Texas Rangers"},{name:"Seattle Mariners"},
+    {name:"Cleveland Guardians"},{name:"Detroit Tigers"},{name:"Chicago White Sox"}
+  ],
+  "國家聯盟": [
+    {name:"Los Angeles Dodgers"},{name:"San Francisco Giants"},{name:"San Diego Padres"},
+    {name:"Atlanta Braves"},{name:"Philadelphia Phillies"},{name:"New York Mets"},
+    {name:"St. Louis Cardinals"},{name:"Milwaukee Brewers"},{name:"Chicago Cubs"}
+  ]
+};
+const SAMPLE_TEAMS = [...new Set([].concat(...Object.values(TEAMS_BY_LEAGUE).map(a=>a.map(t=>t.name))))];
