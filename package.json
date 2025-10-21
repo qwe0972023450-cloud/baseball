@@ -1,15 +1,14 @@
 {
-  "name": "bbtycoon-v9",
-  "version": "9.0.0",
+  "name": "baseball-agent-manager",
+  "version": "1.4.0",
   "private": true,
   "engines": {
-    "node": ">=18.x"
+    "node": ">=18"
   },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "compression": "^1.7.4"
+    "express": "^4.19.2"
   }
 }

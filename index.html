@@ -1,55 +1,66 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Baseball Agent Manager</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23fff'/><path d='M12 20c8 8 8 16 0 24M52 20c-8 8-8 16 0 24' stroke='%23c00' stroke-width='4' fill='none'/></svg>">
   <link rel="stylesheet" href="style.css" />
-  <script src="js/data/players_mlb.js"></script>
-  <script src="js/modules/ratings.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="logo">⚾</div>
+      <div class="logo">⚾️</div>
       <div>
-        <div class="title">Baseball Agent Manager</div>
-        <div class="subtitle">職業經理人 ‧ 多聯盟版</div>
+        <div class="title">Baseball<br/>Agent<br/>Manager</div>
+        <div class="subtitle">職業經理人．多聯盟版</div>
       </div>
     </div>
-    <div class="hud">
-      <div class="hud-item">年份 <span id="hud-year">2030</span></div>
-      <div class="hud-item">週次 <span id="hud-week">1</span>/52</div>
-      <div class="hud-item">知名度 ⭐ <span id="hud-fame">0</span></div>
-      <div class="hud-item">現金 💵 <span id="hud-cash">$0</span></div>
-      <button id="btn-next-week" class="btn primary">下一週 ▶</button>
+    <div class="stats">
+      <div class="pill" id="badge-year">年份 <span id="ui-year">2030</span></div>
+      <div class="pill" id="badge-week">週次 <span id="ui-week">1/52</span></div>
+      <div class="pill">知名度 ⭐ <span id="ui-fame">0</span></div>
+      <div class="pill">現金 💵 $<span id="ui-cash">0</span></div>
     </div>
+    <button id="btn-next" class="btn btn-next">下一週 ▶</button>
   </header>
 
-  <nav class="nav">
-    <a href="#/home" class="nav-link" data-route="home">主頁</a>
-    <a href="#/clients" class="nav-link" data-route="clients">客戶</a>
-    <a href="#/teams" class="nav-link" data-route="teams">球隊</a>
-    <a href="#/finance" class="nav-link" data-route="finance">財務</a>
-    <a href="#/academy" class="nav-link" data-route="academy">學院</a>
-    <a href="#/staff" class="nav-link" data-route="staff">員工</a>
-    <a href="#/shop" class="nav-link" data-route="shop">商店</a>
-    <a href="#/season" class="nav-link" data-route="season">賽季</a>
-    <a href="#/news" class="nav-link" data-route="news">新聞</a>
-    <a href="#/champions" class="nav-link" data-route="champions">冠軍榜</a>
-    <a href="#/settings" class="nav-link" data-route="settings">設定</a>
+  <nav class="launcher" id="top-launcher">
+    <a href="#/home" class="btn">主頁</a>
+    <a href="#/clients" class="btn">客戶</a>
+    <a href="#/teams" class="btn">球隊</a>
+    <a href="#/finance" class="btn">財務</a>
+    <a href="#/academy" class="btn">學院</a>
+    <a href="#/staff" class="btn">員工</a>
+    <a href="#/shop" class="btn">商店</a>
+    <a href="#/season" class="btn">賽季</a>
+    <a href="#/news" class="btn">新聞</a>
+    <a href="#/champions" class="btn">冠軍榜</a>
+    <a href="#/settings" class="btn">設定</a>
   </nav>
 
-  <main id="router-outlet" class="page"></main>
+  <main id="app-content" class="content"></main>
 
-  <footer class="footer">
-    <div>© 2025 — v1.1 — 離線原型（按「設定」可匯出/匯入存檔）</div>
-  </footer>
+  <nav class="navbar">
+    <a href="#/home" class="navbtn">主頁</a>
+    <a href="#/clients" class="navbtn">客戶</a>
+    <a href="#/teams" class="navbtn">球隊</a>
+    <a href="#/season" class="navbtn">季賽</a>
+    <a href="#/settings" class="navbtn">設定</a>
+  </nav>
 
-  <script src="js/data/leagues.js"></script>
-  <script src="js/data/names.js"></script>
+  <footer class="footer">© <span id="ui-year-footer">2025</span> — v1.4.0　離線原型（按「設定」可匯出/匯入存檔）</footer>
+
   <script src="js/app.js"></script>
   <script src="js/router.js"></script>
+  <script src="js/scheduler.js"></script>
+
+  <!-- data -->
+  <script src="js/data/leagues.js"></script>
+  <script src="js/data/names.js"></script>
+  <script src="js/data/players_mlb.js"></script>
+
+  <!-- pages -->
   <script src="js/pages/home.js"></script>
   <script src="js/pages/clients.js"></script>
   <script src="js/pages/teams.js"></script>
