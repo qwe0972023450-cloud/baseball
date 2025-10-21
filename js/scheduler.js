@@ -1,117 +1,81 @@
-window.Scheduler = {
-  nextWeek(){
-    if (Game.week >= Game.seasonWeeks){
-      this.finishSeason();
-      return;
+let _timer=null;
+const Engine = {
+  tickWeek(){
+    Store.players.forEach(p=>simulatePlayerWeek(p));
+    evaluatePlayers();
+    produceWeeklyNews();
+    if(Store.week===Store.settings.weeksPerSeason){
+      awardChampions();
+      Store.season += 1; Store.week = 0;
+      retireAgingPlayers();
+      Store.players.forEach(p=>p.weeklyRatings=[]);
     }
-    Game.week++;
-    Game.players.forEach(p => {
-      if (p.retired) return;
-      const isBatter = p.pos === 'B';
-      p.season.G++;
-      if (isBatter){
-        const ab = 10 + Math.floor(Math.random()*12);
-        const hits = Math.floor(ab*(0.18+Math.random()*0.18));
-        const hr = Math.random()<0.15 ? Math.floor(Math.random()*2) : 0;
-        const rbi = hr* (1+Math.floor(Math.random()*3));
-        p.season.AB += ab;
-        p.season.H += hits;
-        p.season.HR += hr;
-        p.season.RBI += rbi;
-        p.season.AVG = p.season.AB ? (p.season.H / p.season.AB) : 0;
-      } else {
-        const ip = parseFloat((3+Math.random()*4).toFixed(1));
-        const k = Math.floor(ip*(1.5+Math.random()*1.5));
-        const er = Math.floor(Math.max(0, ip*(0.5+Math.random()*1.5)-Math.random()));
-        p.season.IP = parseFloat((p.season.IP + ip).toFixed(1));
-        p.season.K += k;
-        p.season.ER += er;
-        p.season.ERA = p.season.IP ? (p.season.ER*9/p.season.IP) : 0;
-      }
-      let delta = (Math.random()-.45)*0.2;
-      if (isBatter && p.season.AVG>0.3) delta += 0.05;
-      if (!isBatter && p.season.ERA && p.season.ERA<3.0) delta += 0.05;
-      p.rating = Math.max(1, Math.min(10, +(p.rating + delta).toFixed(1)));
-      p.skill = Math.max(50, Math.min(100, Math.round(p.skill + delta*2)));
-      let mood = "🙂";
-      if (p.rating>=9) mood = "🤩";
-      else if (p.rating>=7.5) mood="😄";
-      else if (p.rating<=3) mood="😕";
-      p.mood = mood;
-      if (p.rating < 2){
-        p.weeksBelow2++;
-        if (p.weeksBelow2>=4){
-          p.waiver = false;
-          p.retired = true;
-          News.push(`【解約】${p.name} 表現低迷（平均評價 < 2 四週），與 ${p.team} 提前解約。`);
-        }
-      }else if (p.rating<5){
-        p.waiver = true;
-      }else{
-        p.waiver = false;
-      }
-      if (!p.retired && p.age>=35){
-        const chance = (p.age-34)*0.003;
-        if (Math.random()<chance){
-          p.retired = true;
-          News.push(`【退休】${p.name}（${p.age}）宣布退休。`);
-        }
-      }
-      if (Game.week % 13 === 0) p.age++;
-    });
-    this.weeklyNews();
-    Bus.emit("render");
-    Router.routes[Router.current()]?.();
+    Store.week += 1; persist(); Router.render(location.hash);
   },
-
-  finishSeason(){
-    const year = Game.year;
-    Game.leagues.forEach(l => {
-      const teams = Game.teams.filter(t=>t.league===l.code);
-      const champ = teams[Math.floor(Math.random()*teams.length)];
-      Game.champions.push({year, league:l.code, leagueName:l.name, team:champ.name, country:champ.country});
-      News.push(`【${l.name}】${year} 年度冠軍：${champ.country} ${champ.name}`);
-    });
-    Game.week = 1;
-    Game.year++;
-    Game.seasonWeeks = 40+Game.rand(6);
-    Game.players.forEach(p => {
-      p.season = {G:0,AB:0,H:0,AVG:0,HR:0,RBI:0,IP:0,K:0,ER:0,ERA:0};
-      p.weeksBelow2 = 0;
-      if (!p.retired && Math.random()<0.05) p.contract = Game.year + (1+Game.rand(3));
-    });
-    News.push(`【開季】${Game.year} 新球季正式開始（例行賽：${Game.seasonWeeks} 週）！`);
-    updateHeader();
-    Router.go("champions");
-    saveGame();
-  },
-
-  weeklyNews(){
-    const active = Game.players.filter(p=>!p.retired);
-    if (active.length){
-      const best = active.slice().sort((a,b)=>b.rating-a.rating)[0];
-      const worst = active.slice().sort((a,b)=>a.rating-b.rating)[0];
-      News.push(`【本週之星】${best.name} 評價 ${best.rating}（${best.team}）`);
-      News.push(`【本週低潮】${worst.name} 評價 ${worst.rating}（${worst.team}）`);
-    }
-    const roll = Math.random();
-    if (roll<0.2){
-      const p = active[Math.floor(Math.random()*active.length)];
-      News.push(`【流言】${p.name} 傳出可能被交易，${p.team} 表示「不評論」。`);
-    }else if (roll<0.35){
-      const p = active[Math.floor(Math.random()*active.length)];
-      News.push(`【傷情】${p.name} 輕傷休戰一週，所幸無大礙。`);
-    }else if (roll<0.45){
-      News.push(`【商業】某品牌加碼贊助聯盟，聯盟聲量上升。`);
-      Game.fame += 1;
-    }
+  auto(start=true){
+    if(start){ if(_timer) return; Store.settings.autoSim=true; _timer=setInterval(()=>Engine.tickWeek(),800); }
+    else { Store.settings.autoSim=false; clearInterval(_timer); _timer=null; }
   }
 };
-
-window.News = {
-  push(msg){
-    const item = { id: Game.uid(), week: Game.week, year: Game.year, text: msg, time: Date.now() };
-    Game.news.unshift(item);
-  },
-  list(){ return Game.news.slice(0,50); }
-};
+function simulatePlayerWeek(p){
+  if(p.status!=='active') return;
+  const perf = Math.max(1, Math.min(10, Math.round(normal(p.ovr/10,1.2))));
+  p.weeklyRatings.push(perf); if(p.weeklyRatings.length>4) p.weeklyRatings.shift();
+  const games=5, ab=3+Math.floor(Math.random()*10);
+  const hitRate = Math.min(0.45, Math.max(0.15, 0.18 + (p.ovr-50)/500 + (perf-5)/50 ));
+  const hits = Math.round(ab*hitRate); const hr = Math.random()<(0.02+p.ovr/5000+perf/500)?1:0;
+  p.season.G += games; p.season.AB += ab; p.season.H += hits; p.season.HR += hr; p.season.RBI += Math.round(hits*0.6 + hr*1.5);
+  calcAVG(p);
+  const avg4 = p.weeklyRatings.reduce((a,b)=>a+b,0)/p.weeklyRatings.length;
+  if(avg4>=7) p.ovr = Math.min(99, p.ovr + (avg4>=9?2:1));
+  else if(avg4<=3) p.ovr = Math.max(35, p.ovr - 1);
+  p.role = roleByAvgScore(avg4);
+}
+function evaluatePlayers(){
+  Store.players.forEach(p=>{
+    if(p.weeklyRatings.length<4) return;
+    const avg4 = p.weeklyRatings.slice(-4).reduce((a,b)=>a+b,0)/4;
+    if(avg4<2){ p.status='released'; p.teamId=null; p.team='FA'; if(!Store.freeAgents.includes(p.id)) Store.freeAgents.push(p.id); }
+    else if(avg4>=3 && avg4<5){ p.status='waived'; if(!Store.waiver.includes(p.id)) Store.waiver.push(p.id); }
+    else { if(p.status==='waived') p.status='active'; }
+  });
+}
+function awardChampions(){
+  Leagues.leagues.forEach(L=>{
+    const tally={};
+    Store.players.forEach(p=>{
+      if(!p.teamId) return;
+      const team = Store.teams.find(t=>t.id===p.teamId);
+      if(!team || team.leagueId!==L.id) return;
+      (tally[p.teamId] ||= { team:p.team, ab:0, h:0 });
+      tally[p.teamId].ab += p.season.AB; tally[p.teamId].h += p.season.H;
+    });
+    let best=null,bestAvg=-1; Object.values(tally).forEach(t=>{ const avg=t.ab? t.h/t.ab:0; if(avg>bestAvg){bestAvg=avg; best=t;} });
+    if(best) Store.champions[L.id] = { league:L.name, team:best.team, avg:bestAvg, season:Store.season };
+  });
+}
+function retireAgingPlayers(){
+  Store.players.forEach(p=>{
+    if(p.status==='retired') return;
+    if(p.age>=35){
+      const base=(p.age-34)*0.03;
+      const chance=Math.min(0.33, base + (p.ovr<55?0.06:0) - (p.ovr>85?0.04:0));
+      if(Math.random()<chance) p.status='retired'; else p.age+=1;
+    }else p.age+=1;
+  });
+}
+function produceWeeklyNews(){
+  let best=null,worst=null,bS=-1,wS=99;
+  Store.players.forEach(p=>{
+    const last=p.weeklyRatings[p.weeklyRatings.length-1];
+    if(last!=null){ if(last>bS){bS=last;best=p;} if(last<wS){wS=last;worst=p;} }
+  });
+  const date=`S${Store.season} W${Store.week}`;
+  const lead=`例行賽來到第 ${Store.week} 週，焦點持續聚集在頂尖戰力與黑馬球員身上。`;
+  const items=[];
+  if(best) items.push({title:'本週最佳球員', text:`${best.team} 的 ${best.name} 評分 ${bS}/10，火力全開！AVG ${(best.season.AVG||0).toFixed(3)}。`});
+  if(worst) items.push({title:'本週最差球員', text:`${worst.team} 的 ${worst.name} 僅 ${wS}/10，教練團考慮調整。`});
+  if(Math.random()<0.25) items.push({title:'傷兵名單', text:'數名球員傳出小傷，預期休兵 1–2 週。'});
+  Store.news.unshift({date,lead,items}); if(Store.news.length>30) Store.news.pop();
+}
+function normal(mu,sigma){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();const n=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);return n*sigma+mu;}
