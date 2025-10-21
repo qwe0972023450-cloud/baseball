@@ -1,28 +1,30 @@
-Router.register("home", () => {
-  mount(`
-    <section class="grid cols-3">
-      <div class="card">
-        <h3>經理快照</h3>
-        <div class="kpi">
-          <div class="chip">年份：${Game.year}</div>
-          <div class="chip">週次：${Game.week}/${Game.seasonWeeks}</div>
-          <div class="chip">知名度：${Game.fame}</div>
-          <div class="chip">現金：$${Game.cash.toLocaleString()}</div>
+window.Pages=window.Pages||{};
+Pages.Home = {
+  render(){
+    return `<div class="grid">
+      <div class="col-12">
+        <div class="card">
+          <h3>賽季進度</h3>
+          <div class="kpi">
+            <div class="item"><div class="label">年度</div><div class="value">${Store.season}</div></div>
+            <div class="item"><div class="label">目前週次</div><div class="value">W${Store.week}/${Store.settings.weeksPerSeason}</div></div>
+            <div class="item"><div class="label">版本</div><div class="value">${Store.version}</div></div>
+          </div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn primary" id="btnWeek">模擬 1 週</button>
+            <button class="btn success" id="btnAuto">${Store.settings.autoSim? '停止自動':'自動模擬'}</button>
+            <button class="btn warn" id="btnExport">匯出存檔</button>
+            <button class="btn ghost" id="btnReset">新賽季重置</button>
+          </div>
+          <small class="muted">* 週 40–45 將自動產生各聯盟冠軍。</small>
         </div>
       </div>
-      <div class="card">
-        <h3>快速前往</h3>
-        <div class="kpi">
-          <a class="chip" href="#/clients">客戶列表</a>
-          <a class="chip" href="#/news">本週新聞</a>
-          <a class="chip" href="#/champions">歷年冠軍</a>
-          <a class="chip" href="#/season">賽季資訊</a>
-        </div>
-      </div>
-      <div class="card">
-        <h3>提示</h3>
-        <div class="muted">按上方「下一週」模擬賽事、生成新聞、並於第 ${Game.seasonWeeks} 週結束後自動產生各聯盟冠軍。</div>
-      </div>
-    </section>
-  `);
-});
+    </div>`;
+  },
+  mount(){
+    document.getElementById('btnWeek').onclick=()=>Engine.tickWeek();
+    document.getElementById('btnAuto').onclick=()=>Engine.auto(!Store.settings.autoSim);
+    document.getElementById('btnExport').onclick=()=>exportSave();
+    document.getElementById('btnReset').onclick=()=>{ if(confirm('重置賽季？')){ resetSeasonHard(); Router.render('#/home'); } };
+  }
+};

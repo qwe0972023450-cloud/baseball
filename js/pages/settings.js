@@ -1,42 +1,28 @@
-Router.register("settings", () => {
-  mount(`<div class="card">
-    <h3>設定 / 存檔</h3>
-    <div class="kpi">
-      <button class="btn" data-action="save">匯出存檔</button>
-      <input type="file" id="file" accept="application/json" />
-      <button class="btn" data-action="load">匯入存檔</button>
-      <button class="btn" data-action="reset">重設遊戲</button>
-    </div>
-    <div class="muted">系統會自動將進度保存到本機瀏覽器（localStorage）。重設將清除本機存檔並重新生成球員。</div>
-  </div>`);
-
-  Pages.actions.save = ()=>{
-    const {routes, ...rest} = Game;
-    const data = JSON.stringify({version:Game.version,...rest}, null, 2);
-    const blob = new Blob([data], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `save_${Date.now()}.json`;
-    a.click();
-  };
-  Pages.actions.load = ()=>{
-    const f = document.getElementById("file").files[0];
-    if(!f) return alert("請先選擇存檔檔案");
-    const fr = new FileReader();
-    fr.onload = ()=>{
-      try{
-        const s = JSON.parse(fr.result);
-        Object.assign(Game, s);
-        saveGame();
-        updateHeader();
-        Router.go("home");
-      }catch(e){ alert("存檔格式錯誤"); }
-    };
-    fr.readAsText(f);
-  };
-  Pages.actions.reset = ()=>{
-    if (!confirm("確定要重設？此操作會清除本機存檔。")) return;
-    localStorage.removeItem("bam_save");
-    location.reload();
-  };
-});
+Pages.Settings = {
+  render(){
+    return `<div class="grid">
+      <div class="col-12"><div class="card">
+        <h3>資料管理</h3>
+        <div class="btn-row">
+          <button class="btn warn" id="export">匯出存檔</button>
+          <label class="btn ghost" for="importSave">匯入存檔</label>
+          <input id="importSave" type="file" accept="application/json" style="display:none" />
+        </div>
+      </div></div>
+      <div class="col-12"><div class="card">
+        <h3>匯入真實球員名單</h3>
+        <div class="subtle">JSON 陣列：{ name, team, age, salary, ovr, potential, season? }</div>
+        <div class="btn-row" style="margin-top:8px">
+          <label class="btn primary" for="importRoster">匯入名單（JSON）</label>
+          <input id="importRoster" type="file" accept="application/json" style="display:none" />
+        </div>
+        <small class="muted">* team 名稱需與 <span class="mono">js/data/leagues.js</span> 相同；如為 1.1 舊格式，請使用 <span class="mono">tools/convert_roster_11_to_16x.js</span> 轉換。</small>
+      </div></div>
+    </div>`;
+  },
+  mount(){
+    document.getElementById('export').onclick=()=>exportSave();
+    document.getElementById('importSave').onchange=e=>{ const f=e.target.files[0]; if(f) importSave(f); };
+    document.getElementById('importRoster').onchange=e=>{ const f=e.target.files[0]; if(f) importRosters(f); };
+  }
+};

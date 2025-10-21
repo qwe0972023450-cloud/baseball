@@ -1,84 +1,54 @@
-function renderClients(){
-  // filter + sort
-  const q = Game.ui.clientQuery.trim().toLowerCase();
-  const sorted = Game.players.slice().filter(p => !q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q));
-  const [key, dir] = Game.ui.clientSort.split("_"); // rating_desc
-  sorted.sort((a,b)=>{
-    let va = (key==='rating'?a.rating:key==='salary'?a.salary:a.skill);
-    let vb = (key==='rating'?b.rating:key==='salary'?b.salary:b.skill);
-    return dir==='asc' ? va - vb : vb - va;
-  });
-
-  const toolbar = `
-    <div class="toolbar">
-      <input id="client-search" class="input" placeholder="搜尋姓名 / 球隊" value="${Game.ui.clientQuery||''}"/>
-      <select id="client-sort" class="select">
-        <option value="rating_desc" ${Game.ui.clientSort==='rating_desc'?'selected':''}>評分 ⬇</option>
-        <option value="rating_asc" ${Game.ui.clientSort==='rating_asc'?'selected':''}>評分 ⬆</option>
-        <option value="salary_desc" ${Game.ui.clientSort==='salary_desc'?'selected':''}>薪資 ⬇</option>
-        <option value="salary_asc" ${Game.ui.clientSort==='salary_asc'?'selected':''}>薪資 ⬆</option>
-        <option value="skill_desc" ${Game.ui.clientSort==='skill_desc'?'selected':''}>能力 ⬇</option>
-        <option value="skill_asc" ${Game.ui.clientSort==='skill_asc'?'selected':''}>能力 ⬆</option>
-      </select>
-    </div>`;
-
-  const rows = sorted.map(p => `
-    <div class="row basic">
-      <div class="name">${p.name}</div>
-      <div>${p.team}</div>
-      <div>$${p.salary.toLocaleString()}</div>
-      <div><button class="btn" data-action="toggle" data-id="${p.id}">詳情</button></div>
-      <div class="details" id="d-${p.id}" style="display:none;">
-        <div class="kpi">
-          <span class="chip">能力 ${p.skill}</span>
-          <span class="chip">評分 ${p.rating}</span>
-          <span class="chip">球探上限 ${p.scout}</span>
-          <span class="chip">年齡 ${p.age}</span>
-          <span class="chip">合約 ${p.contract}</span>
-          <span class="chip">狀態 ${p.mood}${p.waiver?'（讓渡）':''}${p.retired?'（不在名單）':''}</span>
-        </div>
-        <div class="grid cols-2">
-          <div class="card">
-            <b>當季數據（打者）</b>
-            <div class="kpi">
-              <span class="chip">G ${p.season.G}</span>
-              <span class="chip">AB ${p.season.AB}</span>
-              <span class="chip">H ${p.season.H}</span>
-              <span class="chip">AVG ${(p.season.AVG||0).toFixed(3)}</span>
-              <span class="chip">HR ${p.season.HR}</span>
-              <span class="chip">RBI ${p.season.RBI}</span>
-            </div>
-          </div>
-          <div class="card">
-            <b>當季數據（投手）</b>
-            <div class="kpi">
-              <span class="chip">G ${p.season.G}</span>
-              <span class="chip">IP ${p.season.IP}</span>
-              <span class="chip">K ${p.season.K}</span>
-              <span class="chip">ER ${p.season.ER}</span>
-              <span class="chip">ERA ${(p.season.ERA||0).toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
+Pages.Clients = {
+  render(){
+    const rows = Store.players.filter(p=>p.status!=='retired').slice(0,600).map(p=>{
+      const avg4=p.weeklyRatings.length?(p.weeklyRatings.reduce((a,b)=>a+b,0)/p.weeklyRatings.length).toFixed(1):'-';
+      const badge = p.role.includes('頂尖')?'gold':p.role.includes('當家')?'green':p.role.includes('主力')?'blue':'gray';
+      return `<tr><td>${p.name}</td><td>${p.team||'FA'}</td><td>${fmtMoney(p.salary)}</td><td>${avg4}</td><td><span class="badge ${badge}">${p.role}</span></td></tr>`;
+    }).join('');
+    return `<div class="card">
+      <h3>客戶列表 <span class="badge gray">簡易</span></h3>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>姓名</th><th>所屬球隊</th><th>薪資</th><th>平均評分(近4)</th><th>評價</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn" id="toDetail">切換 詳細能力/當季數據</button>
+        <button class="btn ghost" id="exportCsv">匯出 CSV</button>
       </div>
     </div>
-  `).join("");
-
-  mount(`<div class="card"><h3>客戶</h3>${toolbar}<div class="grid">${rows}</div></div>`);
-
-  // actions
-  Pages.actions.toggle = (el)=>{
-    const id = el.getAttribute("data-id");
-    const d = document.getElementById("d-"+id);
-    d.style.display = d.style.display==="none" ? "" : "none";
-  };
-
-  // bind toolbar
-  const s = document.getElementById("client-search");
-  const sel = document.getElementById("client-sort");
-  s.oninput = (e)=>{ Game.ui.clientQuery = e.target.value; renderClients(); };
-  sel.onchange = (e)=>{ Game.ui.clientSort = e.target.value; renderClients(); };
+    <div id="detailBlock"></div>`;
+  },
+  mount(){
+    document.getElementById('toDetail').onclick=()=>renderDetail();
+    document.getElementById('exportCsv').onclick=()=>{
+      const header=['name','team','salary','ovr','potential','G','AB','H','HR','RBI','AVG'];
+      const lines=[header.join(',')];
+      Store.players.forEach(p=>{
+        const row=[p.name,p.team,p.salary,p.ovr,p.potential,p.season.G,p.season.AB,p.season.H,p.season.HR,p.season.RBI,(p.season.AVG||0).toFixed(3)];
+        lines.push(row.map(x=>typeof x==='string'&&x.includes(',')?`"${x}"`:x).join(','));
+      });
+      const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='clients.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1200);
+    };
+  }
+};
+function renderDetail(){
+  const rows = Store.players.filter(p=>p.status!=='retired').slice(0,600).map(p=>{
+    return `<tr>
+      <td>${p.name}</td><td>${p.team||'FA'}</td><td>${fmtMoney(p.salary)}</td>
+      <td>${p.ovr}</td><td>${p.potential} <span class="badge gray">${p.scoutTier}</span></td>
+      <td class="mono">${p.season.G}</td><td class="mono">${p.season.AB}</td><td class="mono">${p.season.H}</td>
+      <td class="mono">${p.season.HR}</td><td class="mono">${p.season.RBI}</td><td class="mono">${(p.season.AVG||0).toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('detailBlock').innerHTML = `<div class="card" style="margin-top:10px">
+    <h3>客戶列表 <span class="badge gray">詳細</span></h3>
+    <div class="table-wrap"><table class="table">
+      <thead><tr>
+        <th>姓名</th><th>所屬球隊</th><th>薪資</th><th>OVR</th><th>潛力(球探)</th>
+        <th>G</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>AVG</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
 }
-
-Router.register("clients", renderClients);
-Bus.on("render", ()=>{ if (Router.current()==="clients") renderClients(); });
