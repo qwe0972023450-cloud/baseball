@@ -1,7 +1,3 @@
-// male-only names
-const FIRST_NAMES = ["志豪", "冠廷", "柏翰", "承翰", "家豪", "俊傑", "宇軒", "彥廷", "紹庭", "鈞翔", "柏毅", "宗翰", "彥博", "哲瑋", "建宏", "信宏", "嘉宏", "冠宇", "明軒", "柏宇", "俊宇", "柏廷", "承恩", "偉倫", "志威", "承哲", "志豪", "博宇", "育誠", "育豪", "郁翔", "泓儒", "家瑋", "俊豪", "子豪", "宗憲", "柏翰", "俊翔"];
-const LAST_NAMES = ["王", "李", "張", "林", "陳", "黃", "吳", "劉", "蔡", "楊", "許", "鄭", "謝", "洪", "郭", "羅", "邱", "何", "江", "葉", "蕭", "潘", "程", "姚", "方", "唐"];
-const POSITIONS = ["先發投手", "中繼投手", "終結者", "捕手", "一壘手", "二壘手", "三壘手", "游擊手", "左外野", "中外野", "右外野"];
-function randName(){
-  return LAST_NAMES[Math.floor(Math.random()*LAST_NAMES.length)] + FIRST_NAMES[Math.floor(Math.random()*FIRST_NAMES.length)];
-}
+const FAMILY = ["陳","林","黃","張","李","王","吳","劉","蔡","楊","趙","周","徐","孫","朱"];
+const GIVEN = ["冠廷","冠宇","柏翰","志明","哲瑋","家豪","承恩","冠豪","建宏","俊傑","宗翰","承翰","睿恩","奕廷","威廷"];
+window.RandomName = function(){ const f = FAMILY[Math.floor(Math.random()*FAMILY.length)]; const g = GIVEN[Math.floor(Math.random()*GIVEN.length)]; return f+g; };
