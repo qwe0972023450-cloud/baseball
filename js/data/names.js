@@ -1,3 +1,6 @@
-const FAMILY = ["陳","林","黃","張","李","王","吳","劉","蔡","楊","趙","周","徐","孫","朱"];
-const GIVEN = ["冠廷","冠宇","柏翰","志明","哲瑋","家豪","承恩","冠豪","建宏","俊傑","宗翰","承翰","睿恩","奕廷","威廷"];
-window.RandomName = function(){ const f = FAMILY[Math.floor(Math.random()*FAMILY.length)]; const g = GIVEN[Math.floor(Math.random()*GIVEN.length)]; return f+g; };
+const Names = (()=>{
+  const FIRST=['Wei-Chen','Chih-Hao','Yu-Hsuan','Po-Jung','Cheng-Min','Yao-Hsun','Kuo-Hui','Chieh-Ming','Chin-Lung','Yong-Chi','Taro','Kenji','Shota','Kenta','Ryo','Hayato','Yuki','Haruto','Sota','Daiki','Min-ho','Jae-hyun','Seung-ho','Ji-hoon','Hyun-woo','Sung-ho','Jong-hyun','Dong-won','Jae-ho','Sung-min','John','Mike','Chris','David','James','Alex','Brian','Kevin','Daniel','Andrew','Juan','Luis','Jose','Carlos','Pedro','Miguel','Jorge','Diego','Sergio','Rafael'];
+  const LAST=['Lin','Chen','Wang','Huang','Chang','Lee','Liu','Yang','Wu','Tsai','Sato','Suzuki','Takahashi','Tanaka','Watanabe','Ito','Yamamoto','Nakamura','Kobayashi','Kato','Kim','Lee','Park','Choi','Jung','Kang','Yoon','Cho','Jang','Lim','Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Wilson','Anderson','Gonzalez','Rodriguez','Martinez','Hernandez','Lopez','Perez','Sanchez','Ramirez','Torres','Flores'];
+  function maleName(){ const f=FIRST[Math.floor(Math.random()*FIRST.length)], l=LAST[Math.floor(Math.random()*LAST.length)]; return `${f} ${l}`; }
+  return { maleName };
+})();
