@@ -1,14 +1,18 @@
-
-Router.register("season", ()=>{
-  // Current season estimate board per league (synthetic standings for quick glance)
-  function leagueBlock(l){
-    const mock = l.teams.map(n=>({name:n, win: rand(30,90), loss: rand(30,90)}));
-    mock.sort((a,b)=> (b.win-b.loss) - (a.win-a.loss));
-    const rows = mock.slice(0,8).map((t,i)=>`<tr><td>${i+1}</td><td>${t.name}</td><td>${t.win}-${t.loss}</td></tr>`).join("");
-    return `<div class="panel">
-      <div class="panel-header"><h3>${l.name}</h3><span class="badge">Tier ${l.tier}</span></div>
-      <table class="table"><thead><tr><th>#</th><th>球隊</th><th>戰績</th></tr></thead><tbody>${rows}</tbody></table>
+Router.register("season", () => {
+  const html = `
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>賽季狀態</h3>
+        <div class="kpi">
+          <span class="chip">年份 ${Game.year}</span>
+          <span class="chip">週次 ${Game.week}/${Game.seasonWeeks}</span>
+        </div>
+        <div class="muted">例行賽長度於每年開季隨機設定為 40–45 週，結束後自動產生各聯盟冠軍。</div>
+      </div>
+      <div class="card">
+        <h3>隨機事件</h3>
+        <div class="muted">每週可能出現流言、傷情、贊助等事件，並影響新聞與名聲。</div>
+      </div>
     </div>`;
-  }
-  return `<div class="grid grid-2">${LEAGUES.map(leagueBlock).join("")}</div>`;
+  mount(html);
 });

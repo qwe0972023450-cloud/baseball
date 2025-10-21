@@ -1,48 +1,42 @@
+Router.register("settings", () => {
+  mount(`<div class="card">
+    <h3>設定 / 存檔</h3>
+    <div class="kpi">
+      <button class="btn" data-action="save">匯出存檔</button>
+      <input type="file" id="file" accept="application/json" />
+      <button class="btn" data-action="load">匯入存檔</button>
+      <button class="btn" data-action="reset">重設遊戲</button>
+    </div>
+    <div class="muted">系統會自動將進度保存到本機瀏覽器（localStorage）。重設將清除本機存檔並重新生成球員。</div>
+  </div>`);
 
-Router.register("settings", ()=>{
-  function updateCommission(){
-    const s = parseFloat(document.getElementById("c-salary").value);
-    const e = parseFloat(document.getElementById("c-endorse").value);
-    const t = parseFloat(document.getElementById("c-transfer").value);
-    STATE.commission.salary = s/100; STATE.commission.endorsement = e/100; STATE.commission.transfer = t/100;
-    save(); Router.resolve();
-  }
-  function exportSave(){
-    const blob = new Blob([JSON.stringify(STATE)], {type:"application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href=url; a.download="bam_save.json"; a.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 5000);
-  }
-  window.updateCommission = updateCommission;
-  window.exportSave = exportSave;
-  window.importSave = ()=>{
-    const inp = document.getElementById("file-import");
-    if(!inp.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{ Object.assign(STATE, JSON.parse(reader.result)); save(); location.hash="#/home"; location.reload(); };
-    reader.readAsText(inp.files[0]);
+  Pages.actions.save = ()=>{
+    const {routes, ...rest} = Game;
+    const data = JSON.stringify({version:Game.version,...rest}, null, 2);
+    const blob = new Blob([data], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `save_${Date.now()}.json`;
+    a.click();
   };
-  return `<div class="grid grid-2">
-    <div class="panel">
-      <div class="panel-header"><h3>佣金設定</h3><span class="badge">即時生效</span></div>
-      <div class="grid grid-2">
-        <div>薪資提成（%）<input id="c-salary" class="input" type="number" value="${Math.round(STATE.commission.salary*100)}"></div>
-        <div>代言提成（%）<input id="c-endorse" class="input" type="number" value="${Math.round(STATE.commission.endorsement*100)}"></div>
-        <div>交易抽成（%）<input id="c-transfer" class="input" type="number" value="${Math.round(STATE.commission.transfer*100)}"></div>
-      </div>
-      <div class="flex" style="margin-top:8px">
-        <button class="btn" onclick="updateCommission()">更新</button>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><h3>存檔</h3><span class="badge">匯出/匯入</span></div>
-      <div class="flex">
-        <button class="btn secondary" onclick="exportSave()">匯出存檔</button>
-        <label class="btn muted" for="file-import">選擇存檔</label>
-        <input id="file-import" style="display:none" type="file" accept="application/json" onchange="importSave()" />
-      </div>
-      <div class="section-title">版本</div>
-      <div>目前版本 v${VERSION}（頁面完全分離、十個路由、年度冠軍公告、分級聯盟難度與表現）</div>
-    </div>
-  </div>`;
+  Pages.actions.load = ()=>{
+    const f = document.getElementById("file").files[0];
+    if(!f) return alert("請先選擇存檔檔案");
+    const fr = new FileReader();
+    fr.onload = ()=>{
+      try{
+        const s = JSON.parse(fr.result);
+        Object.assign(Game, s);
+        saveGame();
+        updateHeader();
+        Router.go("home");
+      }catch(e){ alert("存檔格式錯誤"); }
+    };
+    fr.readAsText(f);
+  };
+  Pages.actions.reset = ()=>{
+    if (!confirm("確定要重設？此操作會清除本機存檔。")) return;
+    localStorage.removeItem("bam_save");
+    location.reload();
+  };
 });

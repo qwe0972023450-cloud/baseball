@@ -1,14 +1,7 @@
-
-Router.register("teams", ()=>{
-  const leagueBlocks = LEAGUES.map(l=>{
-    const rows = l.teams.map((t,i)=>`<tr><td>${i+1}</td><td>${t}</td><td>${l.name}</td><td>Tier ${l.tier}</td></tr>`).join("");
-    return `<div class="panel">
-      <div class="panel-header"><h3>${l.name}</h3><span class="badge">Tier ${l.tier} — ${l.country}</span></div>
-      <table class="table">
-        <thead><tr><th>#</th><th>球隊</th><th>聯盟</th><th>層級</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+Router.register("teams", () => {
+  const groups = Game.leagues.map(l => {
+    const list = Game.teams.filter(t=>t.league===l.code).map(t=>`<span class="chip">${t.country} ${t.name}</span>`).join("");
+    return `<div class="card"><h3>${l.name}</h3><div class="kpi">${list}</div></div>`;
   }).join("");
-  return `<div class="grid grid-2">${leagueBlocks}</div>`;
+  mount(`<div class="grid cols-2">${groups}</div>`);
 });

@@ -1,30 +1,28 @@
-
-Router.register("home", ()=>{
-  return `
-  <div class="grid grid-3">
-    <div class="panel">
-      <div class="panel-header"><h3>關鍵指標</h3><span class="badge">儀表板</span></div>
-      <div class="kpi">
-        <div class="card"><div class="muted">知名度</div><div class="big">${STATE.fame}</div></div>
-        <div class="card"><div class="muted">現金</div><div class="big">${fmtMoney(STATE.cash)}</div></div>
-        <div class="card"><div class="muted">客戶數</div><div class="big">${STATE.clients.length}</div></div>
+Router.register("home", () => {
+  mount(`
+    <section class="grid cols-3">
+      <div class="card">
+        <h3>經理快照</h3>
+        <div class="kpi">
+          <div class="chip">年份：${Game.year}</div>
+          <div class="chip">週次：${Game.week}/${Game.seasonWeeks}</div>
+          <div class="chip">知名度：${Game.fame}</div>
+          <div class="chip">現金：$${Game.cash.toLocaleString()}</div>
+        </div>
       </div>
-      <hr class="sep"/>
-      <div class="section-title">快速操作</div>
-      <div class="flex">
-        <a href="#/clients" class="btn secondary">管理客戶</a>
-        <a href="#/academy" class="btn">學院招募</a>
-        <a href="#/teams" class="btn muted">球隊查詢</a>
+      <div class="card">
+        <h3>快速前往</h3>
+        <div class="kpi">
+          <a class="chip" href="#/clients">客戶列表</a>
+          <a class="chip" href="#/news">本週新聞</a>
+          <a class="chip" href="#/champions">歷年冠軍</a>
+          <a class="chip" href="#/season">賽季資訊</a>
+        </div>
       </div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><h3>新聞快訊</h3><span class="badge">最新 6 則</span></div>
-      <div>${STATE.news.slice(0,6).map(n=>`<div class="notice">[${n.year} W${n.week}] ${n.text}</div>`).join("") || "— 尚無新聞 —"}</div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><h3>本季目標</h3><span class="badge">自訂</span></div>
-      <div class="notice">贏得任一聯盟冠軍、簽下 NPB 或 MLB 客戶 2 名、年度利潤達 $10M。</div>
-      <div class="chart">（後續可以換成圖表）</div>
-    </div>
-  </div>`;
+      <div class="card">
+        <h3>提示</h3>
+        <div class="muted">按上方「下一週」模擬賽事、生成新聞、並於第 ${Game.seasonWeeks} 週結束後自動產生各聯盟冠軍。</div>
+      </div>
+    </section>
+  `);
 });
