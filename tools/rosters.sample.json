@@ -1,1 +1,34 @@
-
+[
+  {
+    "name": "Mike Johnson",
+    "team": "New York Yankees",
+    "age": 28,
+    "salary": 950,
+    "ovr": 82,
+    "potential": 90
+  },
+  {
+    "name": "Wei-Chen Lin",
+    "team": "CTBC Brothers",
+    "age": 24,
+    "salary": 420,
+    "ovr": 68,
+    "potential": 78
+  },
+  {
+    "name": "Kenji Sato",
+    "team": "Yomiuri Giants",
+    "age": 26,
+    "salary": 700,
+    "ovr": 75,
+    "potential": 85
+  },
+  {
+    "name": "Min-ho Kim",
+    "team": "LG Twins",
+    "age": 27,
+    "salary": 610,
+    "ovr": 73,
+    "potential": 82
+  }
+]

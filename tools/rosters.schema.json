@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BAM Roster 1.6.x",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "name",
+      "team"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "team": {
+        "type": "string"
+      },
+      "age": {
+        "type": "number"
+      },
+      "salary": {
+        "type": "number"
+      },
+      "ovr": {
+        "type": "number"
+      },
+      "potential": {
+        "type": "number"
+      },
+      "season": {
+        "type": "object",
+        "properties": {
+          "G": {
+            "type": "number"
+          },
+          "AB": {
+            "type": "number"
+          },
+          "H": {
+            "type": "number"
+          },
+          "HR": {
+            "type": "number"
+          },
+          "RBI": {
+            "type": "number"
+          },
+          "AVG": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": true
+  }
+}
