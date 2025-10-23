@@ -1,10 +1,12 @@
-
 App.registerPage('events', {
   title:'事件',
   render(state){
-    const evts = state.events.slice(0,30).map(n=>`
-      <article><div class="tag">W${n.week}</div>${(n.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}<h3>${n.title}</h3><div class="lead">${n.body}</div></article>
-    `).join('') || '<div class="muted">目前沒有事件</div>';
+    const evts = state.events.slice(0,30).map(e=>`
+      <article>
+        <div class="tag">W${e.week}</div>
+        <h3>${e.type==='brand'?'品牌聲量提升': e.type==='deal'?'商務合作':'負面新聞'}</h3>
+        <div class="lead">${e.text}</div>
+      </article>`).join('') || '<div class="muted">目前沒有事件</div>';
     const recs = state.recommendations.slice(0,30).map(r=>{
       const p = state.players.find(x=>x.id===r.playerId);
       if(!p) return '';
