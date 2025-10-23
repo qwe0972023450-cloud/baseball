@@ -1,47 +1,51 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Baseball Agent Manager v1.6.4</title>
-<link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Baseball Agent Manager v1.6.4</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">⚾️ Baseball Agent Manager</div>
-  <nav class="tabs" id="topTabs">
-    <a href="#/home" class="tab">主頁</a>
-    <a href="#/clients" class="tab">客戶</a>
-    <a href="#/season" class="tab">賽季</a>
-    <a href="#/news" class="tab">新聞</a>
-    <a href="#/champions" class="tab">冠軍榜</a>
-    <a href="#/settings" class="tab">設定</a>
+  <header class="app-header">
+    <h1 id="page-title">Baseball Agent Manager</h1>
+    <div class="header-actions">
+      <button id="btn-save" class="btn primary">儲存</button>
+      <button id="btn-reset" class="btn ghost">重置</button>
+    </div>
+  </header>
+
+  <main id="app" class="app-main"></main>
+
+  <nav class="bottom-nav">
+    <a href="#/home" data-route="home" class="nav-item">首頁</a>
+    <a href="#/clients" data-route="clients" class="nav-item">客戶</a>
+    <a href="#/season" data-route="season" class="nav-item">賽季</a>
+    <a href="#/news" data-route="news" class="nav-item">新聞</a>
+    <a href="#/champions" data-route="champions" class="nav-item">冠軍</a>
+    <a href="#/settings" data-route="settings" class="nav-item">設定</a>
   </nav>
-</header>
-<main id="app" class="page"></main>
-<footer class="bottombar" id="bottomNav">
-  <a href="#/home" class="btn">🏠</a>
-  <a href="#/clients" class="btn">👥</a>
-  <a href="#/season" class="btn">📅</a>
-  <a href="#/news" class="btn">📰</a>
-  <a href="#/settings" class="btn">⚙️</a>
-</footer>
-<script src="js/app.js"></script>
-<script src="js/router.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/state.js"></script>
-<script src="js/scheduler.js"></script>
-<script src="js/data/leagues.js"></script>
-<script src="js/data/players.js"></script>
-<script src="js/pages/home.js"></script>
-<script src="js/pages/clients.js"></script>
-<script src="js/pages/season.js"></script>
-<script src="js/pages/news.js"></script>
-<script src="js/pages/champions.js"></script>
-<script src="js/pages/settings.js"></script>
-<script src="js/pages/finance.js"></script>
-<script src="js/pages/staff.js"></script>
-<script src="js/pages/shop.js"></script>
-<script>window.addEventListener('load', () => { window.BAM.init(); });</script>
+
+  <!-- Data first -->
+  <script src="js/data/leagues.js"></script>
+  <script src="js/data/names.js"></script>
+
+  <!-- Core -->
+  <script src="js/app.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/scheduler.js"></script>
+
+  <!-- Pages -->
+  <script src="js/pages/home.js"></script>
+  <script src="js/pages/clients.js"></script>
+  <script src="js/pages/season.js"></script>
+  <script src="js/pages/news.js"></script>
+  <script src="js/pages/champions.js"></script>
+  <script src="js/pages/settings.js"></script>
+  <script src="js/pages/teams.js"></script>
+  <script src="js/pages/staff.js"></script>
+  <script src="js/pages/finance.js"></script>
+  <script src="js/pages/shop.js"></script>
+
 </body>
 </html>
