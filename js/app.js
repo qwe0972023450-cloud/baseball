@@ -327,8 +327,8 @@ App.utils.composeNewsArticles = (week)=>{
     const r = rounds[Math.floor(Math.random()*rounds.length)];
     const g = (r.games||[])[Math.floor(Math.random()*r.games.length)];
     if(g){
-      const home = App.state.teams.find(t=>t.id===g.homeId)?.name||'主隊';
-      const away = App.state.teams.find(t=>t.id===g.awayId)?.name||'客隊';
+      const home = ((App.state.teams.find(t=>t.id===g.homeId)||{}).name)||'主隊';
+      const away = ((App.state.teams.find(t=>t.id===g.awayId)||{}).name)||'客隊';
       items.push({week, title:`拉鋸之戰：${home} 險勝 ${away}`, body:`【現場】${home} 與 ${away} 打滿九局，終場以 ${g.homeScore}:${g.awayScore} 分分勝負，${(g.homeScore>g.awayScore?home:away)} 關鍵時刻的牛棚成功守成。`, tags:['話題戰','賽事']});
     }
   }
@@ -535,8 +535,8 @@ App.utils.makeWeeklyNewsPack = (week)=>{
     const s = rounds[Math.floor(Math.random()*rounds.length)];
     if(s.games && s.games.length){
       const g = s.games[Math.floor(Math.random()*s.games.length)];
-      const home = App.state.teams.find(t=>t.id===g.homeId)?.name||'主隊';
-      const away = App.state.teams.find(t=>t.id===g.awayId)?.name||'客隊';
+      const home = ((App.state.teams.find(t=>t.id===g.homeId)||{}).name)||'主隊';
+      const away = ((App.state.teams.find(t=>t.id===g.awayId)||{}).name)||'客隊';
       list.push({week, title:`拉鋸大戰　${home} 險勝 ${away}`, body:`【戰況】${home} 與 ${away} 上演你來我往，終場 ${g.homeScore}:${g.awayScore} 分勝出；球迷情緒高漲，球隊士氣上揚。`, tags:['戰況']});
     }
   }
