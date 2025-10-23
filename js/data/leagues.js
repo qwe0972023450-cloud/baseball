@@ -1,45 +1,20 @@
-const Leagues = (()=>{
-  const MLB_AL_E = ['Baltimore Orioles','Boston Red Sox','New York Yankees','Tampa Bay Rays','Toronto Blue Jays'];
-  const MLB_AL_C = ['Chicago White Sox','Cleveland Guardians','Detroit Tigers','Kansas City Royals','Minnesota Twins'];
-  const MLB_AL_W = ['Houston Astros','Los Angeles Angels','Oakland Athletics','Seattle Mariners','Texas Rangers'];
-  const MLB_NL_E = ['Atlanta Braves','Miami Marlins','New York Mets','Philadelphia Phillies','Washington Nationals'];
-  const MLB_NL_C = ['Chicago Cubs','Cincinnati Reds','Milwaukee Brewers','Pittsburgh Pirates','St. Louis Cardinals'];
-  const MLB_NL_W = ['Arizona Diamondbacks','Colorado Rockies','Los Angeles Dodgers','San Diego Padres','San Francisco Giants'];
-
-  const NPB_C = ['Yomiuri Giants','Hanshin Tigers','Hiroshima Toyo Carp','Chunichi Dragons','Tokyo Yakult Swallows','Yokohama DeNA BayStars'];
-  const NPB_P = ['Orix Buffaloes','Fukuoka SoftBank Hawks','Saitama Seibu Lions','Tohoku Rakuten Golden Eagles','Chiba Lotte Marines','Hokkaido Nippon-Ham Fighters'];
-
-  const KBO = ['Doosan Bears','Hanwha Eagles','Kia Tigers','KT Wiz','LG Twins','Lotte Giants','NC Dinos','Samsung Lions','SSG Landers','Kiwoom Heroes'];
-
-  const CPBL = ['Rakuten Monkeys','CTBC Brothers','Uni-President 7-Eleven Lions','Fubon Guardians','Wei Chuan Dragons'];
-
-  const leagues = [
-    { id:'mlb', name:'MLB 美國職棒', country:'USA', weeks:45, structure:[
-      { name:'American League East', teams: MLB_AL_E },
-      { name:'American League Central', teams: MLB_AL_C },
-      { name:'American League West', teams: MLB_AL_W },
-      { name:'National League East', teams: MLB_NL_E },
-      { name:'National League Central', teams: MLB_NL_C },
-      { name:'National League West', teams: MLB_NL_W },
-    ], gamesPerTeam:162, playoffSlots:12 },
-    { id:'npb', name:'NPB 日本職棒', country:'Japan', weeks:44, structure:[
-      { name:'Central League', teams: NPB_C },
-      { name:'Pacific League', teams: NPB_P },
-    ], gamesPerTeam:143, playoffSlots:6 },
-    { id:'kbo', name:'KBO 韓國職棒', country:'Korea', weeks:44, structure:[
-      { name:'KBO', teams: KBO },
-    ], gamesPerTeam:144, playoffSlots:5 },
-    { id:'cpbl', name:'CPBL 台灣職棒', country:'Taiwan', weeks:40, structure:[
-      { name:'CPBL', teams: CPBL },
-    ], gamesPerTeam:120, playoffSlots:4 },
-  ];
-
-  function getAllTeams(){
-    const list=[]; let id=1;
-    leagues.forEach(L=>L.structure.forEach(div=>div.teams.forEach(t=>{
-      list.push({ id:id++, leagueId:L.id, league:L.name, division:div.name, name:t });
-    })) );
-    return list;
-  }
-  return { leagues, getAllTeams };
-})();
+window.LeaguesSeed=function(){return [
+  {key:'MLB',name:'MLB 美國職棒',config:{gamesPerTeam:162},teams:[
+    {id:'NYY',name:'New York Yankees'},{id:'BOS',name:'Boston Red Sox'},{id:'TOR',name:'Toronto Blue Jays'},{id:'TBR',name:'Tampa Bay Rays'},{id:'BAL',name:'Baltimore Orioles'},
+    {id:'CLE',name:'Cleveland Guardians'},{id:'DET',name:'Detroit Tigers'},{id:'CWS',name:'Chicago White Sox'},{id:'KCR',name:'Kansas City Royals'},{id:'MIN',name:'Minnesota Twins'},
+    {id:'HOU',name:'Houston Astros'},{id:'SEA',name:'Seattle Mariners'},{id:'TEX',name:'Texas Rangers'},{id:'LAA',name:'Los Angeles Angels'},{id:'OAK',name:'Oakland Athletics'},
+    {id:'ATL',name:'Atlanta Braves'},{id:'PHI',name:'Philadelphia Phillies'},{id:'NYM',name:'New York Mets'},{id:'MIA',name:'Miami Marlins'},{id:'WSH',name:'Washington Nationals'},
+    {id:'CHC',name:'Chicago Cubs'},{id:'MIL',name:'Milwaukee Brewers'},{id:'STL',name:'St. Louis Cardinals'},{id:'CIN',name:'Cincinnati Reds'},{id:'PIT',name:'Pittsburgh Pirates'},
+    {id:'LAD',name:'Los Angeles Dodgers'},{id:'SFG',name:'San Francisco Giants'},{id:'SDP',name:'San Diego Padres'},{id:'ARI',name:'Arizona Diamondbacks'},{id:'COL',name:'Colorado Rockies'}
+  ]},
+  {key:'NPB',name:'NPB 日本職棒',config:{gamesPerTeam:143},teams:[
+    {id:'YOM',name:'Yomiuri Giants'},{id:'HNS',name:'Hanshin Tigers'},{id:'CHU',name:'Chunichi Dragons'},{id:'HRO',name:'Hiroshima Toyo Carp'},{id:'YKB',name:'Yokohama DeNA BayStars'},{id:'YKS',name:'Tokyo Yakult Swallows'},
+    {id:'SOF',name:'Fukuoka SoftBank Hawks'},{id:'HAM',name:'Hokkaido Nippon-Ham Fighters'},{id:'LIO',name:'Saitama Seibu Lions'},{id:'LOT',name:'Chiba Lotte Marines'},{id:'ORA',name:'Orix Buffaloes'},{id:'RAK',name:'Tohoku Rakuten Golden Eagles'}
+  ]},
+  {key:'KBO',name:'KBO 韓國職棒',config:{gamesPerTeam:144},teams:[
+    {id:'DOO',name:'Doosan Bears'},{id:'LGW',name:'LG Twins'},{id:'KIA',name:'KIA Tigers'},{id:'LOT',name:'Lotte Giants'},{id:'NCD',name:'NC Dinos'},{id:'HAN',name:'Hanwha Eagles'},{id:'KTW',name:'KT Wiz'},{id:'SSG',name:'SSG Landers'},{id:'KWO',name:'Kiwoom Heroes'},{id:'SAM',name:'Samsung Lions'}
+  ]},
+  {key:'CPBL',name:'CPBL 中華職棒',config:{gamesPerTeam:120},teams:[
+    {id:'LAM',name:'Rakuten Monkeys 樂天桃猿'},{id:'BRO',name:'CTBC Brothers 中信兄弟'},{id:'LIO_TW',name:'Uni-Lions 統一7-ELEVEn獅'},{id:'WED',name:'Wei Chuan Dragons 味全龍'},{id:'TIA',name:'TSG Hawks 台鋼雄鷹'}
+  ]}
+].map(lg=>({...lg,schedule:[]}));};
