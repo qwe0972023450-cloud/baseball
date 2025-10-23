@@ -21,3 +21,5 @@ App.registerPage('news', {
     `;
   }
 });
+
+;(function(){ if(!window.News) window.News={}; if(!window.News.generate){ window.News.generate=function(){ return {best:null,worst:null,headlines:['聯盟焦點','交易傳聞','傷兵更新']}; }; } })();
