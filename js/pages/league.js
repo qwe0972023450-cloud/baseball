@@ -7,44 +7,30 @@ App.registerPage('league', {
     const lid = +(params.get('lg')||1);
     const lg = state.leagues.find(l=>l.id===lid) || state.leagues[0];
     const teams = state.teams.filter(t=>t.leagueId===lg.id);
-    const tbl = state['tbl_'+lg.id] || {};
+    const divisions = lg.divisions||[];
 
-    function renderTable(teamIds){
-      const rows = teamIds.map(tid=>{
-        const t = state.teams.find(x=>x.id===tid);
-        const row = tbl[tid]||{W:0,L:0,RS:0,RA:0};
-        return `<tr><td>${t?t.name:''}</td><td>${row.W}</td><td>${row.L}</td><td>${row.RS}</td><td>${row.RA}</td></tr>`;
-      }).join('') || `<tr><td colspan="5" class="muted">尚未有戰績</td></tr>`;
-      return `<table class="table"><thead><tr><th>球隊</th><th>W</th><th>L</th><th>RS</th><th>RA</th></tr></thead><tbody>${rows}</tbody></table>`;
+    function tableFor(teamIds){
+      const rows = App.utils.computeStandings(lg.id, teamIds);
+      const tr = rows.map(r=>{
+        const t = state.teams.find(x=>x.id===r.teamId);
+        return `<tr><td>${t.name}</td><td>${r.W}</td><td>${r.L}</td><td>${(r.WP*100).toFixed(1)}%</td><td>${r.GB.toFixed(1)}</td><td>${r.RS}</td><td>${r.RA}</td><td>${r.RD}</td></tr>`;
+      }).join('') || `<tr><td colspan="8" class="muted">尚未有戰績</td></tr>`;
+      return `<table class="table"><thead><tr><th>球隊</th><th>W</th><th>L</th><th>勝率</th><th>勝差</th><th>RS</th><th>RA</th><th>RD</th></tr></thead><tbody>${tr}</tbody></table>`;
     }
 
-    const other = state.leagues.map(x=>`<a class="btn${x.id===lg.id?' primary':''}" href="#/league?lg=${x.id}">${x.name}</a>`).join('');
-    let blocks = '';
-    if(lg.divisions && lg.divisions.length){
-      for(const d of lg.divisions){
-        const ids = teams.filter(t=>t.division===d).map(t=>t.id);
-        blocks += `<section class="card"><h3>${d} 戰績</h3>${renderTable(ids)}</section>`;
-      }
-    }else{
-      blocks = `<section class="card"><h3>戰績</h3>${renderTable(teams.map(t=>t.id))}</section>`;
-    }
+    const blocks = (divisions.length? divisions.map(d=>{
+      const ids = teams.filter(t=>t.division===d).map(t=>t.id);
+      return `<section class="card"><h2>${lg.name} · ${d}</h2>${tableFor(ids)}</section>`;
+    }).join('') : `<section class="card"><h2>${lg.name} 戰績</h2>${tableFor(teams.map(t=>t.id))}</section>`);
 
-    const teamCards = teams.map(t=>`
-      <div class="mini-card">
-        <div class="mini-title">${t.name}</div>
-        <div class="muted">${t.country||''}${t.division?(' · '+t.division):''}</div>
-      </div>
-    `).join('');
+    const switcher = state.leagues.map(x=>`<a class="btn${x.id===lg.id?' primary':''}" href="#/league?lg=${x.id}">${x.name}</a>`).join('');
 
-    return `
-      <div class="grid">
-        <section class="card">
-          <h2>${lg.name} 概覽</h2>
-          <div class="btn-row">${other}</div>
-          ${blocks}
-          <h3 style="margin-top:16px">球隊</h3>
-          <div class="wrap">${teamCards}</div>
-        </section>
-      </div>`;
+    return `<div class="grid">
+      <section class="card">
+        <h2>${lg.name} 分頁</h2>
+        <div class="btn-row">${switcher}</div>
+      </section>
+      ${blocks}
+    </div>`;
   }
 });

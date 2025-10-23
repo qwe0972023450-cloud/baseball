@@ -9,22 +9,11 @@ App.registerPage('clients', {
       <td>${p.teamName||'自由球員'}</td>
       <td>${App.utils.formatMoney(p.salary)}</td>
       <td>${p.position}</td>
-      <td>${(p.eval??'-')}</td>
+      <td>${(p.eval||'-')}</td>
     </tr>`).join('') || `<tr><td colspan="5" class="muted">尚無客戶</td></tr>`;
-    return `
-      <div class="grid">
-        <section class="card">
-          <h2>我的客戶</h2>
-          <div class="stat-row">
-            <div class="stat"><div class="stat-k">已簽</div><div class="stat-v">${list.length}</div></div>
-            <div class="stat"><div class="stat-k">上限</div><div class="stat-v">${App.utils.agencyCapacity()}</div></div>
-            <div class="stat"><div class="stat-k">去簽新人</div><div class="stat-v"><a href="#/agency">球探推薦</a></div></div>
-          </div>
-          <table class="table">
-            <thead><tr><th>球員</th><th>所屬球隊</th><th>薪資</th><th>位置</th><th>評分</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </section>
-      </div>`;
+    return `<div class="grid"><section class="card">
+      <h2>我的客戶</h2>
+      <table class="table"><thead><tr><th>球員</th><th>球隊</th><th>薪資</th><th>位置</th><th>評分</th></tr></thead><tbody>${rows}</tbody></table>
+    </section></div>`;
   }
 });

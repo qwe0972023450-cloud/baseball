@@ -2,7 +2,7 @@
 App.registerPage('news', {
   title: '每週棒球新聞',
   render(state){
-    const items = state.news.slice(0,30).map(n=>`
+    const items = state.news.filter(n=>!n.isEvent && !n.isRecommendation).slice(0,30).map(n=>`
       <article>
         <div class="tag">W${n.week}</div>
         ${(n.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
