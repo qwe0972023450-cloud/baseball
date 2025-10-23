@@ -1,47 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Baseball Agent Manager v1.6.3</title>
-  <link rel="stylesheet" href="/style.css" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Baseball Agent Manager v1.6.4</title>
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <header class="app-header">
-    <div class="title">⚾ Baseball Agent Manager v1.6.3</div>
-    <div class="sub">原始 1.1 佈局｜全球多聯盟・經紀人養成</div>
-  </header>
-
-  <main id="app" class="app-main">
-    <div id="page-content"></div>
-  </main>
-
-  <nav class="bottom-nav">
-    <a href="#/home" class="nav-btn" data-route="home">首頁</a>
-    <a href="#/clients" class="nav-btn" data-route="clients">客戶</a>
-    <a href="#/season" class="nav-btn" data-route="season">賽季</a>
-    <a href="#/news" class="nav-btn" data-route="news">新聞</a>
-    <a href="#/champions" class="nav-btn" data-route="champions">冠軍</a>
-    <a href="#/settings" class="nav-btn" data-route="settings">設定</a>
+<header class="topbar">
+  <div class="brand">⚾️ Baseball Agent Manager</div>
+  <nav class="tabs" id="topTabs">
+    <a href="#/home" class="tab">主頁</a>
+    <a href="#/clients" class="tab">客戶</a>
+    <a href="#/season" class="tab">賽季</a>
+    <a href="#/news" class="tab">新聞</a>
+    <a href="#/champions" class="tab">冠軍榜</a>
+    <a href="#/settings" class="tab">設定</a>
   </nav>
-
-  <script src="/js/router.js"></script>
-  <script src="/js/app.js"></script>
-  <script src="/js/data/leagues.js"></script>
-  <script src="/js/data/names.js"></script>
-  <script src="/js/scheduler.js"></script>
-
-  <script src="/js/pages/home.js"></script>
-  <script src="/js/pages/clients.js"></script>
-  <script src="/js/pages/season.js"></script>
-  <script src="/js/pages/news.js"></script>
-  <script src="/js/pages/champions.js"></script>
-  <script src="/js/pages/settings.js"></script>
-
-  <!-- keep stubs present so no route 404 -->
-  <script src="/js/pages/teams.js"></script>
-  <script src="/js/pages/finance.js"></script>
-  <script src="/js/pages/staff.js"></script>
-  <script src="/js/pages/shop.js"></script>
+</header>
+<main id="app" class="page"></main>
+<footer class="bottombar" id="bottomNav">
+  <a href="#/home" class="btn">🏠</a>
+  <a href="#/clients" class="btn">👥</a>
+  <a href="#/season" class="btn">📅</a>
+  <a href="#/news" class="btn">📰</a>
+  <a href="#/settings" class="btn">⚙️</a>
+</footer>
+<script src="js/app.js"></script>
+<script src="js/router.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/state.js"></script>
+<script src="js/scheduler.js"></script>
+<script src="js/data/leagues.js"></script>
+<script src="js/data/players.js"></script>
+<script src="js/pages/home.js"></script>
+<script src="js/pages/clients.js"></script>
+<script src="js/pages/season.js"></script>
+<script src="js/pages/news.js"></script>
+<script src="js/pages/champions.js"></script>
+<script src="js/pages/settings.js"></script>
+<script src="js/pages/finance.js"></script>
+<script src="js/pages/staff.js"></script>
+<script src="js/pages/shop.js"></script>
+<script>window.addEventListener('load', () => { window.BAM.init(); });</script>
 </body>
 </html>
