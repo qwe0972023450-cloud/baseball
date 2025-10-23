@@ -1,18 +1,5 @@
 
 App.sim = {
-  // age everyone at new season (week 1)
-  seasonAgeTick(){
-    if(App.state.week!==1) return;
-    for(const p of App.state.players){
-      p.age = (p.age||18) + 1;
-      // retirement chance 35-45
-      if(p.age>=35 && p.age<=45 && Math.random()< ( (p.age-34) * 0.02 )){
-        p.teamId=null; p.teamName='Retired'; p.status='retired';
-        App.utils.pushNews(App.state.week, `退役：${p.name}`, `${p.name}（${p.age}）宣布退役。`, ['退役']);
-      }
-      if(p.age>33) p.rating = Math.max(1, +(p.rating - 0.1).toFixed(2));
-    }
-  },
   ensureSchedule(){
     if(App.state.schedule.length) return;
     // simple double round robin by league for first 39 weeks
@@ -34,7 +21,17 @@ App.sim = {
     }
   },
   playWeek(week){
-    App.sim.seasonAgeTick();
+    if(App.state.week===1){
+      for(const p of App.state.players){
+        p.age=(p.age||18)+1;
+        if(p.age>=35 && p.age<=45 && Math.random()<((p.age-34)*0.02)){
+          p.teamId=null;p.teamName='Retired';p.status='retired';
+          App.utils.pushNews(App.state.week, `退役：${p.name}`, `${p.name}（${p.age}）宣布退役。`, ['退役']);
+        }
+        if(p.age>33) p.rating = Math.max(1, +(p.rating - 0.1).toFixed(2));
+      }
+    }
+
     // make sure schedule exists
     this.ensureSchedule();
 
@@ -176,34 +173,55 @@ App.nextWeek = ()=>{
     App.navigate('home');
     return;
   }
-  App.sim.playWeek(App.state.week);
+  
+App.sim.playWeek(App.state.week);
 
-// Build client weekly snapshots for modal
 (function(){
   const ag = App.state.agency||{clientIds:[]};
   const clients = ag.clientIds.map(id=>App.state.players.find(p=>p.id===id)).filter(Boolean);
   for(const p of clients){
-    // compute last week increment by diffing totals vs stored shadow
     const prev = p._shadowStats||{G:0,PA:0,H:0,HR:0,RBI:0,AVG:0};
     const rec = {G:p.stats.G - prev.G, PA:p.stats.PA - prev.PA, H:p.stats.H - prev.H, HR:p.stats.HR - prev.HR, RBI:p.stats.RBI - prev.RBI, AVG: p.stats.AVG};
-    p._lastWeekRec = rec;
-    p._shadowStats = {...p.stats};
+    p._lastWeekRec = rec; p._shadowStats = {...p.stats};
   }
 })();
 
-// 4-week recommendation
-if(App.state.week % 4 === 0 && (App.state.agency?.lastRecommendationWeek||0) !== App.state.week){
-  const candidates = App.state.players.filter(p=>!(App.state.agency.clientIds||[]).includes(p.id))
-    .sort((a,b)=> b.potential - a.potential).slice(0,10);
-  if(candidates.length){
-    const rec = candidates[Math.floor(Math.random()*candidates.length)];
-    App.state.agency._pendingRec = rec.id;
-    App.state.agency.lastRecommendationWeek = App.state.week;
-    App.utils.pushNews(App.state.week, '球探推薦', `球探推薦你接觸 ${rec.name}（${rec.teamName}）`, ['經紀','推薦']);
+if(App.state.week % 4 === 0 && (App.state.agency.lastRecommendationWeek||0) !== App.state.week){
+  const ag = App.state.agency;
+  const pool = App.state.players.filter(p=>!(ag.clientIds||[]).includes(p.id)).sort((a,b)=>b.potential-a.potential).slice(0,20);
+  if(pool.length){
+    const rec = pool[Math.floor(Math.random()*pool.length)];
+    ag._pendingRec = rec.id; ag.lastRecommendationWeek = App.state.week;
+    App.utils.pushNews(App.state.week, '球探推薦', `球探鎖定 ${rec.name}（${rec.teamName||'FA'}），建議盡速接觸。`, ['經紀','推薦']);
   }
 }
 
-// Prepare modal sequence: 1) client weekly report 2) newspaper (best/worst already in news)
+if(App.state.week % 4 === 0){
+  const r = Math.random();
+  if(r<0.33){ App.state.agency.reputation = Math.min(100, App.state.agency.reputation+2); App.utils.pushNews(App.state.week,'品牌聲量提升','公司口碑上升，更多球員願意傾聽你的提案。',['公司']); }
+  else if(r<0.66){ App.state.agency.cash += 50000; App.utils.pushNews(App.state.week,'小額代言案','成功替客戶媒合代言，進帳 $50,000。',['商務']); }
+  else { App.state.agency.reputation = Math.max(0, App.state.agency.reputation-2); App.utils.pushNews(App.state.week,'負面新聞','不利傳聞影響公司名望。',['公司']); }
+}
+
+if([12,24,36,48].includes(App.state.week)){
+  const ag = App.state.agency;
+  const lv = ag.depts.academy||1;
+  const mk = (min,max)=> +(Math.random()*(max-min)+min).toFixed(1);
+  const rating = mk(3+0.3*(lv-1), 6+0.3*(lv-1));
+  const potential = mk(rating+0.5, Math.min(10, rating+3));
+  const pos = App.utils.position();
+  const name = App.utils.sample(App.data.maleNames)+' '+App.utils.sample(App.data.maleNames);
+  const ply = {id:App.utils.id('tra'), name, teamId:null, teamName:'Academy', leagueId:null, leagueName:'Academy',
+    position:pos, salary:0, rating, potential, eval:6, age:17+(lv%3),
+    status:'academy', stats:{G:0,PA:0,H:0,HR:0,RBI:0,AVG:0}, seasonWeekAtJoin: App.state.week};
+  App.state.players.push(ply);
+  ag.academyIds.push(ply.id);
+  App.utils.pushNews(App.state.week,'學院畢業','體育學院推出新秀：'+name+'（'+pos+'）', ['學院','新秀']);
+}
+
+App.utils.agencyWeeklyTick();
+App.utils.makeNewsWeekly(App.state.week);
+
 const w = App.state.week;
 const clientReport = App.utils.buildClientWeeklyReport(w);
 const paper = (function(){
@@ -217,7 +235,6 @@ const paper = (function(){
   return `<h3>本週新聞</h3><div class="paper">${items}</div>`;
 })();
 
-// Advance week then show modals and finally return to current route
 App.state.week += 1;
 App.save();
 App.ui.showSequential([clientReport, paper], ()=>{ App.navigate(App.state.currentRoute); });

@@ -1,6 +1,6 @@
 
 window.App = {
-  version: '1.7.1',
+  version: '1.8.0',
   state: {
     currentRoute: 'home',
     week: 1,
@@ -12,7 +12,11 @@ window.App = {
     champions: [], // {season, leagueId, leagueName, teamId, teamName}
     news: [], // {week, title, body, tags:[]}
     lastSavedAt: null,
-    agency: { level:1, reputation:0, cash: 250000, clientIds: [], lastRecommendationWeek: 0 }
+    agency: { 
+      level:1, reputation:0, cash: 250000, clientIds: [], lastRecommendationWeek: 0,
+      depts: {scout:1, manager:1, trainer:1, finance:1, sales:1, academy:1},
+      academyIds: [], _lastCommission:0
+    }
   },
   data: {
     maleNames: [],
@@ -84,7 +88,11 @@ window.App = {
       leagues: JSON.parse(JSON.stringify(this.data.leaguesSeed)),
       teams: [], players: [], schedule: [], champions: [], news: [],
       lastSavedAt: null,
-    agency: { level:1, reputation:0, cash: 250000, clientIds: [], lastRecommendationWeek: 0 }
+    agency: { 
+      level:1, reputation:0, cash: 250000, clientIds: [], lastRecommendationWeek: 0,
+      depts: {scout:1, manager:1, trainer:1, finance:1, sales:1, academy:1},
+      academyIds: [], _lastCommission:0
+    }
     };
     // flatten teams from leaguesSeed
     this.state.teams = this.state.leagues.flatMap(l=>l.teams.map(t=>({...t, leagueId:l.id, leagueName:l.name})));
@@ -223,10 +231,8 @@ window.addEventListener('load', ()=>{
 });
 
 
-// ==== UI helpers (modal queue) ====
+// ==== UI helpers ====
 App.ui = App.ui || {};
-App.ui.queue = [];
-App.ui.onFinish = null;
 App.ui.showModal = function(html, onClose){
   const el = document.getElementById('modal-overlay');
   const box = document.getElementById('modal-box');
@@ -240,68 +246,106 @@ App.ui.showModal = function(html, onClose){
   document.getElementById('modal-next').addEventListener('click', handler);
 };
 App.ui.showSequential = function(contents, finallyCb){
-  App.ui.queue = contents.slice();
-  App.ui.onFinish = finallyCb||null;
+  const queue = contents.slice();
   function next(){
-    const item = App.ui.queue.shift();
-    if(!item){ if(App.ui.onFinish) App.ui.onFinish(); return; }
+    const item = queue.shift();
+    if(!item){ if(finallyCb) finallyCb(); return; }
     App.ui.showModal(item, next);
   }
   next();
 };
 
-// ==== Agency helpers ====
+// ==== Agency & Contracts ====
 App.utils.scoutGrade = (p)=>{
-  const s = Math.round(((p.potential||p.rating||5)/10)*5); // 0..5
+  const s = Math.round(((p.potential||p.rating||5)/10)*5);
   return ['F','D','C','B','A','A+'][Math.max(0, Math.min(5,s))];
 };
 App.utils.agencyCapacity = ()=> 5 + (App.state.agency.level-1)*5;
-App.utils.agencyUpgradeCost = ()=> 200000 * App.state.agency.level;
+App.utils.agencyUpgradeCost = ()=> Math.round(200000 * App.state.agency.level * (1 - 0.03*(App.state.agency.depts.finance-1)));
 App.utils.agencyUpgrade = ()=>{
   const cost = App.utils.agencyUpgradeCost();
-  if(App.state.agency.cash < cost){ alert('現金不足'); return; }
-  App.state.agency.cash -= cost;
-  App.state.agency.level += 1;
-  App.save(); alert('已升級！');
+  const ag = App.state.agency;
+  if(ag.cash < cost){ alert('現金不足'); return; }
+  ag.cash -= cost; ag.level += 1; App.save(); alert('公司已升級');
   App.navigate('agency');
 };
-App.utils.agencyTrySign = (pid)=>{
+App.utils.deptUpgradeCost = (k)=>{
+  const lv = App.state.agency.depts[k]||1;
+  return Math.round(120000 * lv * (1 - 0.02*(App.state.agency.depts.finance-1)));
+};
+App.utils.deptUpgrade = (k)=>{
+  const cost = App.utils.deptUpgradeCost(k);
   const ag = App.state.agency;
-  if(ag.clientIds.length >= App.utils.agencyCapacity()){ alert('客戶已達上限，請升級經紀公司'); return; }
-  const p = App.state.players.find(x=>x.id===pid);
-  if(!p){ alert('找不到球員'); return; }
-  const league = App.state.leagues.find(l=>l.id===p.leagueId);
+  if(ag.cash < cost){ alert('現金不足'); return; }
+  ag.cash -= cost; ag.depts[k] = (ag.depts[k]||1)+1; App.save(); alert('已升級 '+k);
+  App.navigate('agency');
+};
+App.utils.submitAgentOffer = (pid, form)=>{
+  const ag = App.state.agency; const p = App.state.players.find(x=>x.id===pid);
+  if(!p){ alert('找不到球員'); return false; }
+  if(ag.clientIds.length >= App.utils.agencyCapacity()){ alert('客戶已達上限'); return false; }
+  const salary = +form.salary.value||0, years = +form.years.value||1, bonus=+form.bonus.value||0, commission=+form.commission.value||8;
+  if(ag.cash < bonus){ alert('現金不足以支付簽約金'); return false; }
+  // success probability
+  const league = App.state.leagues.find(l=>l.id===p.leagueId)||{level:'Top'};
   const levelFactor = (league.level==='Top')? 0.2 : 0.5;
-  const want = (p.rating + p.potential)/20; // 0..1
-  const rep = (ag.reputation/100); // 0..1
-  const prob = Math.min(0.9, 0.3 + rep + levelFactor*(1-want));
+  const want = (p.rating + p.potential)/20;
+  const rep = (ag.reputation/100);
+  const mgr = 0.03*(ag.depts.manager-1);
+  const scout = 0.02*(ag.depts.scout-1);
+  const offerBoost = Math.min(0.25, (salary/600000)*0.12 + (bonus/200000)*0.1);
+  const prob = Math.min(0.95, 0.25 + rep + levelFactor*(1-want) + mgr + scout + offerBoost);
   if(Math.random() < prob){
     ag.clientIds.push(p.id);
-    ag.reputation = Math.min(100, ag.reputation + 2);
-    App.utils.pushNews(App.state.week, `簽下客戶：${p.name}`, `你成功與 ${p.name} 簽訂經紀合約。`, ['經紀','簽約']);
-    App.save(); alert('簽約成功！');
-    App.navigate('clients');
+    ag.reputation = Math.min(100, ag.reputation + 3);
+    ag.cash -= bonus;
+    p.agentContract = {years, salary, bonus, commission};
+    App.utils.pushNews(App.state.week, `簽下客戶：${p.name}`, `你以 ${App.utils.formatMoney(salary)}/年、簽約金 ${App.utils.formatMoney(bonus)} 與 ${p.name} 簽約（佣金 ${commission}%）。`, ['經紀','簽約']);
+    App.save(); alert('簽約成功'); App.navigate('clients');
   }else{
-    App.utils.pushNews(App.state.week, `簽約失敗：${p.name}`, `${p.name} 拒絕了你的簽約提案，提升公司等級或名望再試試。`, ['經紀','簽約']);
+    App.utils.pushNews(App.state.week, `簽約失敗：${p.name}`, `${p.name} 對你的合約並不滿意。`, ['經紀','談判']);
     alert('對方拒絕了');
   }
+  return false;
 };
 App.utils.agencyRemoveClient = (pid)=>{
-  const ag = App.state.agency;
-  ag.clientIds = ag.clientIds.filter(id=>id!==pid);
-  App.save(); alert('已解除合約');
-  App.navigate('clients');
+  const ag = App.state.agency; ag.clientIds = ag.clientIds.filter(id=>id!==pid);
+  App.save(); alert('已解除經紀約'); App.navigate('clients');
 };
-App.utils.buildClientWeeklyReport = (week)=>{
-  const ag = App.state.agency;
-  const clients = ag.clientIds.map(id=>App.state.players.find(p=>p.id===id)).filter(Boolean);
-  if(!clients.length) return `<h3>本週客戶報告</h3><div class="muted">目前沒有客戶</div>`;
-  const rows = clients.map(p=>{
-    const rec = p._lastWeekRec || {G:0,PA:0,H:0,HR:0,RBI:0,AVG:0};
-    return `<tr><td><a href="#/player?pid=${p.id}" onclick="App.navigate('player');return false;">${p.name}</a></td><td>${p.teamName||'-'}</td><td>${p.position}</td><td>${p.eval?.toFixed? p.eval.toFixed(1):p.eval}</td><td>${rec.G}</td><td>${rec.PA}</td><td>${rec.H}</td><td>${rec.HR}</td><td>${rec.RBI}</td><td>${rec.AVG}</td></tr>`;
-  }).join('');
-  return `<h3>本週客戶表現（W${week}）</h3><table class="table">
-  <thead><tr><th>球員</th><th>球隊</th><th>位置</th><th>評分</th><th>G</th><th>PA</th><th>H</th><th>HR</th><th>RBI</th><th>AVG</th></tr></thead>
-  <tbody>${rows}</tbody></table>`;
+App.utils.agencyWeeklyTick = ()=>{
+  const ag = App.state.agency; let commissionSum = 0;
+  for(const id of (ag.clientIds||[])){
+    const p = App.state.players.find(x=>x.id===id); if(!p||!p.agentContract) continue;
+    const weekly = (p.agentContract.salary||0) * (p.agentContract.commission||8) / 100 / 52;
+    const salesBoost = 1 + 0.05*(ag.depts.sales-1);
+    commissionSum += weekly * salesBoost;
+    const trainerBoost = 0.02*(ag.depts.trainer-1);
+    if(trainerBoost>0){
+      p.eval = Math.min(10, +(p.eval + trainerBoost).toFixed(2));
+      App.utils.progressionFromRating(p);
+    }
+  }
+  const cashYield = (ag.cash||0) * (0.0005 + 0.0002*(ag.depts.finance-1));
+  ag.cash += Math.round(commissionSum + cashYield);
+  ag._lastCommission = Math.round(commissionSum);
+};
+App.utils.makeNewsWeekly = (week)=>{
+  const played = App.state.players.filter(p=>p.teamId && p._lastWeekRec && p._lastWeekRec.PA>0);
+  if(played.length){
+    played.sort((a,b)=> (b._lastWeekRec.AVG - a._lastWeekRec.AVG) || (b._lastWeekRec.HR - a._lastWeekRec.HR));
+    const best = played[0], worst = played[played.length-1];
+    App.utils.pushNews(week, `火力噴發：${best.name}`, `${best.name} 本週 ${best._lastWeekRec.H} 安、${best._lastWeekRec.HR} 轟、打擊率 ${best._lastWeekRec.AVG}，帶動 ${best.teamName} 進攻狂潮。`, ['最佳','週報']);
+    App.utils.pushNews(week, `低潮待解：${worst.name}`, `${worst.name} 手感下滑，本週打擊率 ${worst._lastWeekRec.AVG}，球隊期待他儘快找回節奏。`, ['低迷','週報']);
+  }
+  const rounds = App.state.schedule.filter(s=>s.week===week);
+  if(rounds.length){
+    const s = rounds[Math.floor(Math.random()*rounds.length)];
+    if(s.games && s.games.length){
+      const g = s.games[Math.floor(Math.random()*s.games.length)];
+      const home = App.state.teams.find(t=>t.id===g.homeId)?.name||'主隊';
+      const away = App.state.teams.find(t=>t.id===g.awayId)?.name||'客隊';
+      App.utils.pushNews(week, `話題之戰`, `${home} 與 ${away} 上演拉鋸戰，終場比分 ${g.homeScore}:${g.awayScore}，現場氣氛沸騰。`, ['焦點戰役']);
+    }
+  }
 };
 
