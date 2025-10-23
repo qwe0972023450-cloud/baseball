@@ -1,4 +1,4 @@
-// Realistic leagues & teams with divisions. You can import CSV to override.
+// Realistic leagues & teams with divisions.
 window.BAM_LEAGUES = [
   {
     id: 1, name: 'MLB', country: 'USA', level: 'Top',
