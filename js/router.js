@@ -1,31 +1,7 @@
-// Tiny hash router with per-page mount() to fix dead buttons
-window.Router = (()=>{
-  const routes = {
-    home: Pages.Home,
-    clients: Pages.Clients,
-    season: Pages.Season,
-    news: Pages.News,
-    champions: Pages.Champions,
-    settings: Pages.Settings,
-    // stubs
-    teams: Pages.Teams, finance: Pages.Finance, staff: Pages.Staff, shop: Pages.Shop
-  };
-  function setActiveNav(key){
-    document.querySelectorAll('.nav-btn').forEach(a=>{
-      a.classList.toggle('active', a.getAttribute('data-route')===key);
-    });
-  }
-  function render(hash){
-    const key = (hash || location.hash || '#/home').replace('#/','');
-    const page = routes[key];
-    const el = document.getElementById('page-content');
-    if(!page){ el.innerHTML = `<div class="card"><h3>找不到頁面</h3><div class="subtle mono">Route: ${key}</div></div>`; setActiveNav(key); return; }
-    const html = (typeof page.render==='function') ? page.render() : page();
-    el.innerHTML = html;
-    setActiveNav(key);
-    if(typeof page.mount==='function') page.mount(el);
-  }
-  window.addEventListener('hashchange', ()=>render(location.hash));
-  window.addEventListener('load', ()=>render(location.hash));
-  return { render };
+window.BAMRouter=(()=>{
+  const routes={'#/home':window.PageHome,'#/clients':window.PageClients,'#/season':window.PageSeason,'#/news':window.PageNews,'#/champions':window.PageChampions,'#/settings':window.PageSettings,'#/finance':window.PageFinance,'#/staff':window.PageStaff,'#/shop':window.PageShop};
+  const render=()=>{const hash=location.hash||'#/home';const page=routes[hash];const app=document.getElementById('app');if(!page){app.innerHTML='<div class="card"><h2>找不到頁面</h2><p>Route: '+hash+'</p></div>';return;}page.render(app);highlight(hash);window.BAMState.save();};
+  const highlight=(hash)=>{[...document.querySelectorAll('.tabs .tab,.bottombar .btn')].forEach(a=>a.classList.remove('active'));[...document.querySelectorAll(`a[href="${hash}"]`)].forEach(a=>a.classList.add('active'));};
+  const start=()=>{window.addEventListener('hashchange',render);if(!location.hash)location.hash='#/home';render();};
+  return{start};
 })();

@@ -1,0 +1,1 @@
+window.BAMStorage={key:'bam.save.v164',load(){try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch(e){return{};}},save(d){localStorage.setItem(this.key,JSON.stringify(d));},clear(){localStorage.removeItem(this.key);}};
