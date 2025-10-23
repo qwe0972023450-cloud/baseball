@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Baseball Agent Manager v1.6.4</title>
+  <title>Baseball Agent Manager v1.7.0</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -24,6 +24,8 @@
     <a href="#/news" data-route="news" class="nav-item">新聞</a>
     <a href="#/champions" data-route="champions" class="nav-item">冠軍</a>
     <a href="#/settings" data-route="settings" class="nav-item">設定</a>
+    <a class="nav-item" data-route="league" href="#/league" onclick="App.navigate('league');return false;">聯盟</a>
+  <a class="nav-item" data-route="agency" href="#/agency" onclick="App.navigate('agency');return false;">經紀公司</a>
   </nav>
 
   <!-- Data first -->
@@ -48,12 +50,19 @@
   <script src="js/pages/shop.js"></script>
 
 
-  <script src="js/data/overrides.js"></script>
-
-  <script src="js/core/agency.js"></script>
-
+  <!-- Upgrades v1.7.0 -->
+  <script src="js/overrides/mlb_full.js"></script>
+  <script src="js/overrides/leagues_extra.js"></script>
+  <script src="js/overrides/extensions.js"></script>
   <script src="js/pages/leagues.js"></script>
+  <script src="js/pages/agency.js"></script>
+  <script src="js/pages/player.js"></script>
+  <script src="js/pages/weekly.js"></script>
 
-  <script src="js/patches.js"></script>
+
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;z-index:9999">
+  <div id="modal-box" style="max-width:960px;width:92%;background:#111;border:1px solid #333;border-radius:12px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.6);"></div>
+</div>
+  <script src="js/pages/league.js"></script>
 </body>
 </html>
