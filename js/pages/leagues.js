@@ -1,65 +1,27 @@
-/* v1.7.1: Leagues page with tabs & divisions */
-(function(){
-  const route = "#/leagues";
-  function render(){
-    const app = document.getElementById("app") || document.body;
-    app.innerHTML = "";
-    const h = document.createElement("div");
-    h.className="leagues-page";
-    h.innerHTML = `
-      <div class="page-wrap">
-        <h2 class="page-title">聯盟總覽</h2>
-        <div class="tabs" id="league-tabs"></div>
-        <div id="league-panel"></div>
-      </div>`;
-    app.appendChild(h);
 
-    const data = window.LEAGUE_OVERRIDES||{};
-    const leagues = Object.values(data);
-    const tabs = h.querySelector("#league-tabs");
-    const panel = h.querySelector("#league-panel");
-
-    function tabItem(l){ 
-      const b=document.createElement("button");
-      b.className="pill";
-      b.textContent = l.name + (l.level?`  (Lv.${l.level})`:"");
-      b.onclick=()=>openLeague(l);
-      return b;
+App.registerPage('leagues', {
+  title: '聯盟',
+  render(state){
+    const sel = (state._selLeagueId) || (state.leagues[0]? state.leagues[0].id : 0);
+    const tabs = state.leagues.map(lg=>`<button class="tab ${sel===lg.id?'active':''}" onclick="(App.state._selLeagueId=${lg.id},App.navigate('leagues'))">${lg.name}</button>`).join('');
+    const lg = state.leagues.find(l=>l.id===sel) || state.leagues[0];
+    const teams = state.teams.filter(t=>t.leagueId===lg.id);
+    // Group by division if present
+    const byDiv = {};
+    for(const t of teams){
+      const key = t.division || '全部';
+      (byDiv[key]||(byDiv[key]=[])).push(t);
     }
-    leagues.forEach(l => tabs.appendChild(tabItem(l)));
-    if(leagues[0]) openLeague(leagues[0]);
-
-    function openLeague(lg){
-      panel.innerHTML="";
-      lg.conferences.forEach(conf=>{
-        const confEl=document.createElement("div");
-        confEl.className="conf-block";
-        confEl.innerHTML=`<h3>${conf.name}</h3>`;
-        conf.divisions.forEach(div=>{
-          const d=document.createElement("div");
-          d.className="division";
-          d.innerHTML=`<h4>${div.name}</h4>`;
-          const list=document.createElement("ul");
-          list.className="team-list";
-          div.teams.forEach(t=>{
-            const li=document.createElement("li");
-            li.textContent=t;
-            list.appendChild(li);
-          });
-          d.appendChild(list);
-          confEl.appendChild(d);
-        });
-        panel.appendChild(confEl);
-      });
-    }
+    const sections = Object.entries(byDiv).map(([div, list])=>{
+      const rows = list.map(t=>`<tr><td>${t.name}</td><td>${t.country||''}</td><td>${t.division||''}</td></tr>`).join('');
+      return `<section class="card"><h3>${div}</h3><table class="table"><thead><tr><th>球隊</th><th>國家</th><th>分區</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+    }).join('');
+    return `<div class="grid">
+      <section class="card">
+        <h2>聯盟清單</h2>
+        <div class="tabs">${tabs}</div>
+      </section>
+      ${sections}
+    </div>`;
   }
-
-  window.__registerLeaguesPage = render;
-
-  // Router hook
-  function onHash(){
-    if(location.hash===route){ render(); }
-  }
-  window.addEventListener("hashchange", onHash);
-  if(location.hash===route){ render(); }
-})();
+});

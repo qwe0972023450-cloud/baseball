@@ -35,6 +35,9 @@ App.registerPage('home', {
             <button class="btn primary" onclick="App.nextWeek()">➡️ 推進一週</button>
             <button class="btn" onclick="App.navigate('season')">📅 賽季</button>
             <button class="btn" onclick="App.navigate('news')">📰 新聞</button>
+            <button class="btn" onclick="App.navigate('leagues')">🏟️ 聯盟</button>
+            <button class="btn" onclick="App.navigate('agency')">🤝 經紀公司</button>
+            <button class="btn" onclick="App.navigate('clients')">📋 客戶</button>
           </div>
         </section>
 

@@ -2,35 +2,30 @@
 App.registerPage('clients', {
   title: '客戶',
   render(state){
-    // Simple list: name / team / salary / quick stats
-    const rows = state.players
-      .filter(p=>p.teamId) // exclude FA/retired by default
-      .slice(0, 500)
-      .map(p=>{
-        return `<tr>
-          <td><strong>${p.name}</strong><div class="muted">${p.position}</div></td>
-          <td>${p.teamName}</td>
-          <td>${App.utils.formatMoney(p.salary)}</td>
-          <td>${p.stats.G}</td>
-          <td>${p.stats.PA}</td>
-          <td>${p.stats.H}</td>
-          <td>${p.stats.HR}</td>
-          <td>${p.stats.RBI}</td>
-          <td>${p.stats.AVG}</td>
-          <td><span class="badge">${p.rating.toFixed(1)}</span> <span class="badge ${p.status==='released'?'bad':(p.status==='starter'?'ok':'')}">${p.status}</span></td>
-        </tr>`;
-      }).join('');
+    const ag = state.agency || {clientIds:[]};
+    const list = ag.clientIds.map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
+    const rows = list.map(p=>{
+      return `<tr>
+        <td><a href="#/player?pid=${p.id}" onclick="App.navigate('player');return false;"><strong>${p.name}</strong></a></td>
+        <td>${p.teamName||'自由球員'}</td>
+        <td>${App.utils.formatMoney(p.salary)}</td>
+        <td>${p.position}</td>
+        <td>${p.eval?.toFixed? p.eval.toFixed(1):p.eval}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5" class="muted">尚無客戶</td></tr>`;
+
     return `
       <div class="grid">
         <section class="card">
-          <h2>我的客戶（簡易清單）</h2>
+          <h2>我的客戶</h2>
+          <div class="stat-row">
+            <div class="stat"><div class="stat-k">已簽</div><div class="stat-v">${list.length}</div></div>
+            <div class="stat"><div class="stat-k">上限</div><div class="stat-v">${App.utils.agencyCapacity()}</div></div>
+            <div class="stat"><div class="stat-k">去簽新人</div><div class="stat-v"><a href="#/agency" onclick="App.navigate('agency');return false;">球探推薦</a></div></div>
+          </div>
           <table class="table">
-            <thead><tr>
-              <th>球員</th><th>所屬球隊</th><th>薪資</th>
-              <th>G</th><th>PA</th><th>H</th><th>HR</th><th>RBI</th><th>AVG</th>
-              <th>評分/狀態</th>
-            </tr></thead>
-            <tbody>${rows || `<tr><td colspan="10" class="muted">尚無資料</td></tr>`}</tbody>
+            <thead><tr><th>球員</th><th>所屬球隊</th><th>薪資</th><th>位置</th><th>評分</th></tr></thead>
+            <tbody>${rows}</tbody>
           </table>
         </section>
       </div>
