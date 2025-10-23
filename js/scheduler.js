@@ -1,93 +1,169 @@
-(function(){
-  function ensureSeasonSchedule(state){
-    const {leagues}=state;
-    for(const lg of leagues){
-      if(lg.schedule && lg.schedule.length) continue;
-      const teams=lg.teams.map(t=>t.id);
-      const target=lg.config.gamesPerTeam||120;
-      const pairs=[];
-      for(let i=0;i<teams.length;i++){for(let j=i+1;j<teams.length;j++){pairs.push([teams[i],teams[j]]);}}
-      const repeats=Math.max(1,Math.round((target/((teams.length-1)))/2));
-      let matchups=[];
-      for(let r=0;r<repeats;r++){matchups=matchups.concat(pairs);}
-      for(let i=matchups.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[matchups[i],matchups[j]]=[matchups[j],matchups[i]];}
-      const weeks=52, perWeek=Math.ceil(matchups.length/weeks);
-      lg.schedule=[];
-      for(let w=1;w<=weeks;w++){
-        const start=(w-1)*perWeek;
-        const chunk=matchups.slice(start,start+perWeek);
-        lg.schedule.push({week:w,games:chunk.map(([a,b])=>({home:Math.random()<.5?a:b,away:Math.random()<.5?a:b}))});
+
+App.sim = {
+  ensureSchedule(){
+    if(App.state.schedule.length) return;
+    // simple double round robin by league for first 39 weeks
+    const regWeeks = 39;
+    for(const lg of App.state.leagues){
+      const teams = App.state.teams.filter(t=>t.leagueId===lg.id).map(t=>t.id);
+      // round robin pairings
+      let week=1;
+      for(let w=1; w<=regWeeks; w++){
+        const games=[];
+        const shuffled = [...teams].sort(()=>Math.random()-.5);
+        for(let i=0;i<shuffled.length;i+=2){
+          const a = shuffled[i], b = shuffled[i+1];
+          if(b===undefined) continue;
+          games.push({homeId:a, awayId:b, homeScore:null, awayScore:null});
+        }
+        App.state.schedule.push({week:w, leagueId:lg.id, leagueName:lg.name, games});
+      }
+    }
+  },
+  playWeek(week){
+    // make sure schedule exists
+    this.ensureSchedule();
+
+    // simulate players
+    for(const p of App.state.players){
+      // retirement check off-season only; keep simple
+      App.utils.simPlayerWeek(p);
+    }
+
+    // simulate games for week
+    const schedules = App.state.schedule.filter(s=>s.week===week);
+    for(const s of schedules){
+      for(const g of s.games){
+        const home = App.state.teams.find(t=>t.id===g.homeId);
+        const away = App.state.teams.find(t=>t.id===g.awayId);
+        const homeRating = avgTeamRating(home.id);
+        const awayRating = avgTeamRating(away.id);
+        const base = 2.8;
+        const hr = Math.max(1, Math.round(base + (homeRating-awayRating)*0.6 + Math.random()*6));
+        const ar = Math.max(0, Math.round(base + (awayRating-homeRating)*0.6 + Math.random()*6));
+        g.homeScore = hr; g.awayScore = ar;
+        // standings
+        addResult(s.leagueId, home.id, away.id, hr, ar);
+      }
+    }
+
+    // playoffs 40~45
+    if(week===40){
+      this.seedPlayoffs(week);
+    }
+    if(week>=40 && week<=45){
+      this.playPlayoffs(week);
+    }
+    // News (best & worst of week)
+    publishWeeklyNews(week);
+    App.save();
+
+    function avgTeamRating(teamId){
+      const ps = App.state.players.filter(p=>p.teamId===teamId);
+      if(!ps.length) return 5;
+      return ps.map(p=>p.rating).reduce((a,b)=>a+b,0)/ps.length;
+    }
+    function addResult(leagueId, homeId, awayId, hs, as){
+      const key = `tbl_${leagueId}`;
+      let tbl = App.state[key];
+      if(!tbl){
+        tbl = {}; App.state[key]=tbl;
+      }
+      for(const tid of [homeId,awayId]){
+        if(!tbl[tid]) tbl[tid] = {W:0,L:0,RS:0,RA:0};
+      }
+      if(hs>as){ tbl[homeId].W++; tbl[awayId].L++; } else { tbl[awayId].W++; tbl[homeId].L++; }
+      tbl[homeId].RS+=hs; tbl[homeId].RA+=as;
+      tbl[awayId].RS+=as; tbl[awayId].RA+=hs;
+    }
+    function publishWeeklyNews(week){
+      const played = App.state.players.filter(p=>p.stats && p.stats.PA>0).sort((a,b)=>(b.stats.H/Math.max(1,b.stats.PA)) - (a.stats.H/Math.max(1,a.stats.PA)));
+      if(played.length){
+        const best = played[0];
+        const worst = played[played.length-1];
+        App.utils.pushNews(week, `本週最佳：${best.name}`, `帶領 ${best.teamName} 攻下火力，打擊率 ${best.stats.AVG}、全壘打 ${best.stats.HR}、打點 ${best.stats.RBI}。`, ['最佳球員','週報']);
+        App.utils.pushNews(week, `本週低迷：${worst.name}`, `本週手感冰冷，打擊率 ${worst.stats.AVG}，需要盡快調整。`, ['低潮','週報']);
+      }
+      // random events
+      if(Math.random()<0.35){
+        const p = App.utils.sample(App.state.players);
+        if(p && p.teamId){
+          const kind = Math.random();
+          if(kind<0.5){
+            p.eval = Math.min(10, p.eval + 1);
+            App.utils.pushNews(week, `熱身爆發：${p.name}`, `${p.teamName} 的 ${p.name} 狀態火燙，評價上調。`, ['事件','狀態']);
+          }else{
+            p.eval = Math.max(1, p.eval - 0.8);
+            App.utils.pushNews(week, `小傷勢：${p.name}`, `${p.name} 傳出輕傷狀況，評價下降，短期影響表現。`, ['事件','傷勢']);
+          }
+        }
+      }
+    }
+  },
+  seedPlayoffs(startWeek){
+    // take top 4 per league
+    for(const lg of App.state.leagues){
+      const key = `tbl_${lg.id}`;
+      const tbl = App.state[key]||{};
+      const rows = Object.entries(tbl).map(([tid,row])=>({tid:tid*1, ...row}));
+      rows.sort((a,b)=>(b.W - a.W) || ((b.RS-b.RA)-(a.RS-a.RA)));
+      const top = rows.slice(0,4).map(r=>r.tid);
+      App.state[`po_${lg.id}`] = {teams:top, round:1, bracket:[ [top[0],top[3]], [top[1], top[2]] ], winners:[]};
+      App.utils.pushNews(startWeek, `${lg.name} 季後賽開打`, `前四名球隊晉級：${top.map(id=>App.state.teams.find(t=>t.id===id).name).join('、')}`, ['季後賽']);
+    }
+  },
+  playPlayoffs(week){
+    for(const lg of App.state.leagues){
+      const po = App.state[`po_${lg.id}`];
+      if(!po) continue;
+      if(po.round===1){
+        // decide two winners
+        po.winners = po.bracket.map(pair=>{
+          const [a,b]=pair;
+          return Math.random()<0.5? a:b;
+        });
+        po.round=2;
+      }else if(po.round===2){
+        // final winner
+        const [a,b] = po.winners;
+        const champId = Math.random()<0.5? a:b;
+        const team = App.state.teams.find(t=>t.id===champId);
+        App.state.champions.unshift({season:new Date().getFullYear(), leagueId: lg.id, leagueName: lg.name, teamId: champId, teamName: team.name});
+        delete App.state[`po_${lg.id}`];
+        App.utils.pushNews(week, `${lg.name} 冠軍出爐`, `${team.name} 奪下本季總冠軍！`, ['冠軍','季後賽']);
       }
     }
   }
-  function getTeam(state,id){for(const lg of state.leagues){const t=lg.teams.find(x=>x.id===id);if(t)return t;}return null;}
-  function teamPower(state,team){const roster=(state.rosters[team.id]||[]);const avg=roster.length?(roster.reduce((s,p)=>s+(p.rating||50),0)/roster.length):50;return avg;}
-  function bumpRandomPlayerStats(state,team,runs){
-    const roster=state.rosters[team.id]||[]; if(!roster.length) return;
-    const p=roster[Math.floor(Math.random()*roster.length)]; p.stats=p.stats||{G:0,AB:0,H:0,HR:0,OPS:0,RBI:0,ERA:0,IP:0,SO:0};
-    p.stats.G++; const ab=Math.max(3,Math.round(3+Math.random()*2));
-    p.stats.AB+=ab; const hits=Math.min(ab,Math.round(Math.random()*ab));
-    p.stats.H+=hits; p.stats.HR+=(Math.random()<0.1?1:0); p.stats.RBI+=Math.round(Math.random()*runs);
-    const obp=(p.stats.H/Math.max(1,p.stats.AB)); p.stats.OPS=+(obp+0.4+Math.random()*0.6).toFixed(3);
-  }
-  function playerEvaluation(p){
-    const base=p.stats?.OPS||0.700; let score=5;
-    if(base<.550) score=2; else if(base<.650) score=3.5; else if(base<.725) score=5.5; else if(base<.800) score=7.5; else if(base<.900) score=8.5; else score=9.2;
-    p.eval=+score.toFixed(1); return p.eval;
-  }
-  function ratingGrowthAndContracts(state){
-    for(const teamId of Object.keys(state.rosters)){
-      const roster=state.rosters[teamId];
-      roster.forEach(p=>{
-        if(!p.ceiling) p.ceiling=Math.min(99,Math.round((p.rating||50)+10+Math.random()*30));
-        const ev=playerEvaluation(p);
-        if(ev>=7) p.rating=Math.min(p.ceiling,+((p.rating||50)+Math.random()*1.2).toFixed(1));
-        else if(ev<=2 && (p.weeksLow=(p.weeksLow||0)+1)>=4){ p.status='Released'; }
-        else if(ev>=3 && ev<5){ p.status='Waivers'; }
-        else { p.status='Active'; p.weeksLow=0; }
-      });
-    }
-  }
-  function weeklyNews(state){
-    const all=Object.values(state.rosters).flat();
-    if(all.length){
-      const sorted=all.filter(p=>p.stats?.G>0).sort((a,b)=>(b.stats?.OPS||0)-(a.stats?.OPS||0));
-      if(sorted[0]) state.news.unshift({type:'BEST',text:`本週最佳球員：${sorted[0].name}（OPS ${sorted[0].stats.OPS}）`,ts:Date.now()});
-      const worst=sorted[sorted.length-1];
-      if(worst) state.news.unshift({type:'WORST',text:`本週狀況最差：${worst.name}（OPS ${worst.stats.OPS}）`,ts:Date.now()});
-    }
-    if(Math.random()<0.2){const lg=state.leagues[Math.floor(Math.random()*state.leagues.length)];state.news.unshift({type:'EVENT',text:`${lg.name} 傳出自由市場大消息，數名球員傳聞將被交易。`,ts:Date.now()});}
-  }
-  function calcChampion(lg){
-    const standings=(lg.teams||[]).slice().sort((a,b)=>((b.stats?.W||0)-(b.stats?.L||0))-((a.stats?.W||0)-(a.stats?.L||0)));
-    return standings[0]||lg.teams[0];
-  }
-  function processWeek(state){
-    ensureSeasonSchedule(state);
-    for(const lg of state.leagues){
-      const wk=(lg.schedule||[]).find(s=>s.week===state.week); if(!wk) continue;
-      for(const g of wk.games){
-        const home=getTeam(state,g.home), away=getTeam(state,g.away);
-        const homePow=teamPower(state,home), awayPow=teamPower(state,away);
-        const homeScore=Math.max(0,Math.round((homePow*0.1 + Math.random()*6)));
-        const awayScore=Math.max(0,Math.round((awayPow*0.1 + Math.random()*6)));
-        if(!home.stats) home.stats={W:0,L:0,R:0,RA:0};
-        if(!away.stats) away.stats={W:0,L:0,R:0,RA:0};
-        home.stats.R+=homeScore; home.stats.RA+=awayScore; away.stats.R+=awayScore; away.stats.RA+=homeScore;
-        if(homeScore>=awayScore){home.stats.W++;away.stats.L++;}else{away.stats.W++;home.stats.L++;}
-        bumpRandomPlayerStats(state,home,homeScore); bumpRandomPlayerStats(state,away,awayScore);
+};
+
+// public actions
+App.nextWeek = ()=>{
+  if(App.state.week>=App.state.maxWeeks){
+    alert('本季已結束，將開啟新賽季。');
+    App.state.week = 1;
+    // aging & retirement
+    for(const p of App.state.players){
+      p.age += 1; // simple yearly bump
+      if(p.age>=35 && p.age<=45 && Math.random() < ((p.age-34)/12)){
+        p.status='retired'; p.teamId=null;p.teamName='Retired';
+      }else{
+        // slight aging effect post 33
+        if(p.age>33) p.rating = Math.max(1, +(p.rating - 0.1).toFixed(2));
       }
     }
-    ratingGrowthAndContracts(state); weeklyNews(state);
-    if(state.week===45){
-      for(const lg of state.leagues){
-        if(state.champions[lg.key]) continue;
-        const champ=calcChampion(lg);
-        state.champions[lg.key]={year:state.year,teamId:champ.id,name:champ.name};
-        state.news.unshift({type:'CHAMP',league:lg.name,text:`${lg.name} 產生冠軍：${champ.name}！`,ts:Date.now()});
-      }
+    // reset standings & schedule
+    App.state.schedule = [];
+    for(const k of Object.keys(App.state)){
+      if(k.startsWith('tbl_')) delete App.state[k];
+      if(k.startsWith('po_')) delete App.state[k];
     }
-    state.week=Math.min(52,state.week+1);
+    App.sim.ensureSchedule();
+    App.save();
+    App.navigate('home');
+    return;
   }
-  window.BAMScheduler={processWeek};
-})();
+  App.sim.playWeek(App.state.week);
+  App.state.week += 1;
+  App.save();
+  App.navigate(App.state.currentRoute);
+};
