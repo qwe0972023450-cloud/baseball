@@ -1,1 +1,1 @@
-Pages.Finance={render(){return `<div class='card'><h3>財務頁</h3><div class='subtle'>（預留）</div></div>`;}};
+window.PageFinance={render:el=>{el.innerHTML='<div class="card"><h2>財務（即將推出）</h2></div>';}};

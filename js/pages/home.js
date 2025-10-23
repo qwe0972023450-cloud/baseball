@@ -1,30 +1,43 @@
-window.Pages=window.Pages||{};
-Pages.Home = {
-  render(){
-    return `<div class="grid">
-      <div class="col-12">
+window.PageHome=(()=>{
+  const render=(el)=>{
+    const s=window.BAM.state;
+    el.innerHTML=`
+      <div class="grid cols-2">
         <div class="card">
-          <h3>賽季進度</h3>
+          <h2>賽季進度</h2>
           <div class="kpi">
-            <div class="item"><div class="label">年度</div><div class="value">${Store.season}</div></div>
-            <div class="item"><div class="label">目前週次</div><div class="value">W${Store.week}/${Store.settings.weeksPerSeason}</div></div>
-            <div class="item"><div class="label">版本</div><div class="value">${Store.version}</div></div>
+            <div class="item"><div class="label">年份</div><div class="value">${s.year}</div></div>
+            <div class="item"><div class="label">目前週數</div><div class="value">${s.week} / 52</div></div>
+            <div class="item"><div class="label">聯盟數</div><div class="value">${s.leagues.length}</div></div>
           </div>
-          <div class="btn-row" style="margin-top:10px">
-            <button class="btn primary" id="btnWeek">模擬 1 週</button>
-            <button class="btn success" id="btnAuto">${Store.settings.autoSim? '停止自動':'自動模擬'}</button>
-            <button class="btn warn" id="btnExport">匯出存檔</button>
-            <button class="btn ghost" id="btnReset">新賽季重置</button>
+          <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn primary" id="btnNextWeek">推進 1 週</button>
+            <button class="btn" id="btnNext5">推進 5 週</button>
+            <button class="btn ghost" id="btnSave">存檔</button>
+            <button class="btn warn" id="btnClear">清除存檔</button>
           </div>
-          <small class="muted">* 週 40–45 將自動產生各聯盟冠軍。</small>
+        </div>
+        <div class="card">
+          <h2>最新新聞</h2>
+          <div class="paper">
+            <div class="headline">每週棒球新聞</div>
+            ${s.news.slice(0,6).map(n=>`<div class="item">📰 ${new Date(n.ts).toLocaleString()}｜${n.text}</div>`).join('')||'<div class="item">尚無新聞</div>'}
+          </div>
         </div>
       </div>
-    </div>`;
-  },
-  mount(){
-    document.getElementById('btnWeek').onclick=()=>Engine.tickWeek();
-    document.getElementById('btnAuto').onclick=()=>Engine.auto(!Store.settings.autoSim);
-    document.getElementById('btnExport').onclick=()=>exportSave();
-    document.getElementById('btnReset').onclick=()=>{ if(confirm('重置賽季？')){ resetSeasonHard(); Router.render('#/home'); } };
-  }
-};
+      <div class="card">
+        <h2>已產生冠軍</h2>
+        <table class="table">
+          <thead><tr><th>聯盟</th><th>年份</th><th>冠軍</th></tr></thead>
+          <tbody>
+            ${s.leagues.map(lg=>{const c=s.champions[lg.key];return `<tr><td>${lg.name}</td><td>${c?c.year:'—'}</td><td>${c?c.name:'—'}</td></tr>`;}).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    el.querySelector('#btnNextWeek').onclick=()=>{window.BAMScheduler.processWeek(window.BAM.state);window.BAMState.save();window.BAMRouter.start();};
+    el.querySelector('#btnNext5').onclick=()=>{for(let i=0;i<5;i++)window.BAMScheduler.processWeek(window.BAM.state);window.BAMState.save();window.BAMRouter.start();};
+    el.querySelector('#btnSave').onclick=()=>{window.BAMState.save();alert('已存檔');};
+    el.querySelector('#btnClear').onclick=()=>{if(confirm('確定清除存檔？')){localStorage.clear();location.reload();}};
+  };
+  return{render};
+})();

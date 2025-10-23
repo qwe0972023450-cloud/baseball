@@ -1,30 +1,15 @@
-Pages.Season = {
-  render(){
-    const leagueCards = Leagues.leagues.map(L=>{
-      const c=Store.champions[L.id];
-      return `<div class="card">
-        <h3>${L.name} <span class="badge gray">${L.gamesPerTeam} 場（壓縮 ${L.weeks} 週）</span></h3>
-        <div class="subtle">分區：${L.structure.map(d=>d.name).join(' / ')}</div>
-        ${c?`<div style="margin-top:8px"><span class="badge gold">上季冠軍</span> ${c.team}（${c.season}）</div>`:''}
-      </div>`;
-    }).join('');
-    return `<div class="grid">
-      <div class="col-12"><div class="card">
-        <h3>賽季控制</h3>
-        <div class="btn-row">
-          <button class="btn primary" id="sim1">模擬 1 週</button>
-          <button class="btn success" id="auto">${Store.settings.autoSim? '停止自動':'自動模擬'}</button>
-          <button class="btn warn" id="simToEnd">跑到季末</button>
-        </div>
-      </div></div>
-      <div class="col-12">${leagueCards}</div>
-    </div>`;
-  },
-  mount(){
-    document.getElementById('sim1').onclick=()=>Engine.tickWeek();
-    document.getElementById('auto').onclick=()=>Engine.auto(!Store.settings.autoSim);
-    document.getElementById('simToEnd').onclick=()=>{
-      const left=Store.settings.weeksPerSeason-Store.week+1; for(let i=0;i<left;i++) Engine.tickWeek();
-    };
-  }
-};
+window.PageSeason=(()=>{
+  const render=(el)=>{
+    const s=window.BAM.state, cur=s.week;
+    el.innerHTML=`<div class="card"><h2>每週排程（第 ${cur} 週）</h2>
+      ${s.leagues.map(lg=>{
+        const wk=(lg.schedule||[]).find(x=>x.week===cur)||{games:[]};
+        return `<div class="sub"><div class="badge">${lg.name}</div>
+          <table class="table"><thead><tr><th>主場</th><th>客場</th></tr></thead>
+          <tbody>${
+            wk.games.slice(0,12).map(g=>`<tr><td>${nameOf(g.home)}</td><td>${nameOf(g.away)}</td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>'
+          }</tbody></table></div>`;
+      }).join('')}</div>`;
+    function nameOf(id){for(const lg of s.leagues){const t=lg.teams.find(x=>x.id===id); if(t) return t.name;} return id;}
+  }; return{render};
+})();

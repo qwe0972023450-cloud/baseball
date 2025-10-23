@@ -1,28 +1,15 @@
-Pages.Settings = {
-  render(){
-    return `<div class="grid">
-      <div class="col-12"><div class="card">
-        <h3>資料管理</h3>
-        <div class="btn-row">
-          <button class="btn warn" id="export">匯出存檔</button>
-          <label class="btn ghost" for="importSave">匯入存檔</label>
-          <input id="importSave" type="file" accept="application/json" style="display:none" />
-        </div>
-      </div></div>
-      <div class="col-12"><div class="card">
-        <h3>匯入真實球員名單</h3>
-        <div class="subtle">JSON 陣列：{ name, team, age, salary, ovr, potential, season? }</div>
-        <div class="btn-row" style="margin-top:8px">
-          <label class="btn primary" for="importRoster">匯入名單（JSON）</label>
-          <input id="importRoster" type="file" accept="application/json" style="display:none" />
-        </div>
-        <small class="muted">* team 名稱需與 <span class="mono">js/data/leagues.js</span> 相同；如為 1.1 舊格式，請使用 <span class="mono">tools/convert_roster_11_to_16x.js</span> 轉換。</small>
-      </div></div>
-    </div>`;
-  },
-  mount(){
-    document.getElementById('export').onclick=()=>exportSave();
-    document.getElementById('importSave').onchange=e=>{ const f=e.target.files[0]; if(f) importSave(f); };
-    document.getElementById('importRoster').onchange=e=>{ const f=e.target.files[0]; if(f) importRosters(f); };
-  }
-};
+window.PageSettings=(()=>{
+  const render=(el)=>{
+    el.innerHTML=`<div class="card"><h2>設定</h2>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn" id="btnExport">匯出存檔</button>
+        <input type="file" id="importFile" style="display:none" accept="application/json"/>
+        <button class="btn" id="btnImport">匯入存檔</button>
+        <button class="btn warn" id="btnReset">重置遊戲</button>
+      </div>
+      <p style="opacity:.7;margin-top:.5rem">版本：v${window.BAM.state.version}</p></div>`;
+    el.querySelector('#btnExport').onclick=()=>{const data=JSON.stringify(window.BAM.state,null,2);const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BAM_save_v164.json';a.click();};
+    el.querySelector('#btnImport').onclick=()=>{const f=el.querySelector('#importFile');f.onchange=()=>{const file=f.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const obj=JSON.parse(r.result);window.BAM.state=obj;window.BAMState.save();alert('匯入成功');window.location.hash='#/home';window.BAMRouter.start();}catch(e){alert('匯入失敗：'+e.message);}};r.readAsText(file);};f.click();};
+    el.querySelector('#btnReset').onclick=()=>{if(confirm('確定清除存檔？')){localStorage.clear();location.reload();}};
+  }; return{render};
+})();

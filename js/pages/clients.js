@@ -1,54 +1,53 @@
-Pages.Clients = {
-  render(){
-    const rows = Store.players.filter(p=>p.status!=='retired').slice(0,600).map(p=>{
-      const avg4=p.weeklyRatings.length?(p.weeklyRatings.reduce((a,b)=>a+b,0)/p.weeklyRatings.length).toFixed(1):'-';
-      const badge = p.role.includes('頂尖')?'gold':p.role.includes('當家')?'green':p.role.includes('主力')?'blue':'gray';
-      return `<tr><td>${p.name}</td><td>${p.team||'FA'}</td><td>${fmtMoney(p.salary)}</td><td>${avg4}</td><td><span class="badge ${badge}">${p.role}</span></td></tr>`;
+window.PageClients=(()=>{
+  const render=(el)=>{
+    const s=window.BAM.state;
+    if(!s.clients||!s.clients.length){
+      s.clients=[];const all=Object.entries(s.rosters).flatMap(([tid,arr])=>arr.map(p=>({...p,teamId:tid})));
+      all.sort((a,b)=>(b.rating||50)-(a.rating||50)); s.clients=all.slice(0,30).map(p=>({id:p.id,teamId:p.teamId}));
+    }
+    const rows=s.clients.map(c=>{
+      const t=getTeam(c.teamId); const p=(s.rosters[c.teamId]||[]).find(x=>x.id===c.id); if(!p) return '';
+      const sal=p.salary?`$${(p.salary/1_000_000).toFixed(1)}M`:'—'; const st=p.stats||{G:0,AB:0,H:0,HR:0,OPS:0,RBI:0};
+      return `<tr data-team="${c.teamId}" data-id="${c.id}" class="row"><td>${p.name}</td><td>${t?.name||'—'}</td><td>${sal}</td><td>${st.G}</td><td>${st.HR}</td><td>${st.OPS||0}</td><td><span class="badge">評分 ${p.eval||'—'}</span></td></tr>`;
     }).join('');
-    return `<div class="card">
-      <h3>客戶列表 <span class="badge gray">簡易</span></h3>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>姓名</th><th>所屬球隊</th><th>薪資</th><th>平均評分(近4)</th><th>評價</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-      <div class="btn-row" style="margin-top:8px">
-        <button class="btn" id="toDetail">切換 詳細能力/當季數據</button>
-        <button class="btn ghost" id="exportCsv">匯出 CSV</button>
+    el.innerHTML=`
+      <div class="card">
+        <h2>客戶列表（簡潔版）</h2>
+        <table class="table" id="clientTable">
+          <thead><tr><th>名稱</th><th>所屬球隊</th><th>薪資</th><th>G</th><th>HR</th><th>OPS</th><th>評價</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
-    </div>
-    <div id="detailBlock"></div>`;
-  },
-  mount(){
-    document.getElementById('toDetail').onclick=()=>renderDetail();
-    document.getElementById('exportCsv').onclick=()=>{
-      const header=['name','team','salary','ovr','potential','G','AB','H','HR','RBI','AVG'];
-      const lines=[header.join(',')];
-      Store.players.forEach(p=>{
-        const row=[p.name,p.team,p.salary,p.ovr,p.potential,p.season.G,p.season.AB,p.season.H,p.season.HR,p.season.RBI,(p.season.AVG||0).toFixed(3)];
-        lines.push(row.map(x=>typeof x==='string'&&x.includes(',')?`"${x}"`:x).join(','));
-      });
-      const blob=new Blob([lines.join('\n')],{type:'text/csv'});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='clients.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1200);
-    };
-  }
-};
-function renderDetail(){
-  const rows = Store.players.filter(p=>p.status!=='retired').slice(0,600).map(p=>{
-    return `<tr>
-      <td>${p.name}</td><td>${p.team||'FA'}</td><td>${fmtMoney(p.salary)}</td>
-      <td>${p.ovr}</td><td>${p.potential} <span class="badge gray">${p.scoutTier}</span></td>
-      <td class="mono">${p.season.G}</td><td class="mono">${p.season.AB}</td><td class="mono">${p.season.H}</td>
-      <td class="mono">${p.season.HR}</td><td class="mono">${p.season.RBI}</td><td class="mono">${(p.season.AVG||0).toFixed(3)}</td>
-    </tr>`;
-  }).join('');
-  document.getElementById('detailBlock').innerHTML = `<div class="card" style="margin-top:10px">
-    <h3>客戶列表 <span class="badge gray">詳細</span></h3>
-    <div class="table-wrap"><table class="table">
-      <thead><tr>
-        <th>姓名</th><th>所屬球隊</th><th>薪資</th><th>OVR</th><th>潛力(球探)</th>
-        <th>G</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>AVG</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>
-  </div>`;
-}
+      <div id="modal" style="display:none"></div>`;
+    el.querySelector('#clientTable').addEventListener('click', (e)=>{
+      const tr=e.target.closest('tr.row'); if(!tr) return;
+      const teamId=tr.getAttribute('data-team'); const id=tr.getAttribute('data-id');
+      const p=(s.rosters[teamId]||[]).find(x=>x.id===id); const t=getTeam(teamId); if(!p) return;
+      const m=el.querySelector('#modal');
+      m.innerHTML=`<div class="modal"><div class="content">
+        <h3>${p.name} <span class="badge">${t?.name||''}</span></h3>
+        <div class="kpi">
+          <div class="item"><div class="label">位置</div><div class="value">${p.pos||'—'}</div></div>
+          <div class="item"><div class="label">年齡</div><div class="value">${p.age||'—'}</div></div>
+          <div class="item"><div class="label">評分</div><div class="value">${p.eval||'—'}</div></div>
+          <div class="item"><div class="label">能力</div><div class="value">${(p.rating||0).toFixed(1)}</div></div>
+          <div class="item"><div class="label">上限(球探)</div><div class="value">${p.ceiling||'—'}</div></div>
+          <div class="item"><div class="label">狀態</div><div class="value">${p.status||'Active'}</div></div>
+        </div>
+        <div class="card" style="margin-top:.8rem">
+          <h4>本季數據</h4>
+          <table class="table"><tbody>
+            <tr><th>G</th><td>${p.stats?.G||0}</td><th>AB</th><td>${p.stats?.AB||0}</td><th>H</th><td>${p.stats?.H||0}</td></tr>
+            <tr><th>HR</th><td>${p.stats?.HR||0}</td><th>RBI</th><td>${p.stats?.RBI||0}</td><th>OPS</th><td>${p.stats?.OPS||0}</td></tr>
+          </tbody></table>
+        </div>
+        <div style="margin-top:.8rem;display:flex;gap:.5rem;justify-content:flex-end">
+          <button class="btn ghost" id="close">關閉</button>
+        </div></div></div>`;
+      m.style.display='block'; m.querySelector('#close').onclick=()=>{m.style.display='none';};
+      m.addEventListener('click',(ev)=>{if(ev.target.classList.contains('modal'))m.style.display='none';},{once:true});
+    });
+    function getTeam(id){for(const lg of s.leagues){const t=lg.teams.find(x=>x.id===id); if(t) return t;} return null;}
+  };
+  return{render};
+})();

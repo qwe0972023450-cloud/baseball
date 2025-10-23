@@ -1,1 +1,1 @@
-Pages.Staff={render(){return `<div class='card'><h3>人事頁</h3><div class='subtle'>（預留）</div></div>`;}};
+window.PageStaff={render:el=>{el.innerHTML='<div class="card"><h2>職員（即將推出）</h2></div>';}};
