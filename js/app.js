@@ -1,6 +1,6 @@
 
 window.App = {
-  version: '1.6.4',
+  version: '1.7.1',
   state: {
     currentRoute: 'home',
     week: 1,
@@ -11,7 +11,8 @@ window.App = {
     schedule: [], // {week, leagueId, games:[{homeId,awayId,homeScore,awayScore}]}
     champions: [], // {season, leagueId, leagueName, teamId, teamName}
     news: [], // {week, title, body, tags:[]}
-    lastSavedAt: null
+    lastSavedAt: null,
+    agency: { level:1, reputation:0, cash: 250000, clientIds: [], lastRecommendationWeek: 0 }
   },
   data: {
     maleNames: [],
@@ -82,7 +83,8 @@ window.App = {
       week:1,maxWeeks:52,
       leagues: JSON.parse(JSON.stringify(this.data.leaguesSeed)),
       teams: [], players: [], schedule: [], champions: [], news: [],
-      lastSavedAt: null
+      lastSavedAt: null,
+    agency: { level:1, reputation:0, cash: 250000, clientIds: [], lastRecommendationWeek: 0 }
     };
     // flatten teams from leaguesSeed
     this.state.teams = this.state.leagues.flatMap(l=>l.teams.map(t=>({...t, leagueId:l.id, leagueName:l.name})));
@@ -219,3 +221,87 @@ window.addEventListener('load', ()=>{
     App.navigate('home');
   }
 });
+
+
+// ==== UI helpers (modal queue) ====
+App.ui = App.ui || {};
+App.ui.queue = [];
+App.ui.onFinish = null;
+App.ui.showModal = function(html, onClose){
+  const el = document.getElementById('modal-overlay');
+  const box = document.getElementById('modal-box');
+  box.innerHTML = html + `<div style="text-align:right;margin-top:12px"><button class="btn primary" id="modal-next">下一步</button></div>`;
+  el.style.display = 'flex';
+  const handler = ()=>{
+    el.style.display='none';
+    document.getElementById('modal-next').removeEventListener('click', handler);
+    if(onClose) onClose();
+  };
+  document.getElementById('modal-next').addEventListener('click', handler);
+};
+App.ui.showSequential = function(contents, finallyCb){
+  App.ui.queue = contents.slice();
+  App.ui.onFinish = finallyCb||null;
+  function next(){
+    const item = App.ui.queue.shift();
+    if(!item){ if(App.ui.onFinish) App.ui.onFinish(); return; }
+    App.ui.showModal(item, next);
+  }
+  next();
+};
+
+// ==== Agency helpers ====
+App.utils.scoutGrade = (p)=>{
+  const s = Math.round(((p.potential||p.rating||5)/10)*5); // 0..5
+  return ['F','D','C','B','A','A+'][Math.max(0, Math.min(5,s))];
+};
+App.utils.agencyCapacity = ()=> 5 + (App.state.agency.level-1)*5;
+App.utils.agencyUpgradeCost = ()=> 200000 * App.state.agency.level;
+App.utils.agencyUpgrade = ()=>{
+  const cost = App.utils.agencyUpgradeCost();
+  if(App.state.agency.cash < cost){ alert('現金不足'); return; }
+  App.state.agency.cash -= cost;
+  App.state.agency.level += 1;
+  App.save(); alert('已升級！');
+  App.navigate('agency');
+};
+App.utils.agencyTrySign = (pid)=>{
+  const ag = App.state.agency;
+  if(ag.clientIds.length >= App.utils.agencyCapacity()){ alert('客戶已達上限，請升級經紀公司'); return; }
+  const p = App.state.players.find(x=>x.id===pid);
+  if(!p){ alert('找不到球員'); return; }
+  const league = App.state.leagues.find(l=>l.id===p.leagueId);
+  const levelFactor = (league.level==='Top')? 0.2 : 0.5;
+  const want = (p.rating + p.potential)/20; // 0..1
+  const rep = (ag.reputation/100); // 0..1
+  const prob = Math.min(0.9, 0.3 + rep + levelFactor*(1-want));
+  if(Math.random() < prob){
+    ag.clientIds.push(p.id);
+    ag.reputation = Math.min(100, ag.reputation + 2);
+    App.utils.pushNews(App.state.week, `簽下客戶：${p.name}`, `你成功與 ${p.name} 簽訂經紀合約。`, ['經紀','簽約']);
+    App.save(); alert('簽約成功！');
+    App.navigate('clients');
+  }else{
+    App.utils.pushNews(App.state.week, `簽約失敗：${p.name}`, `${p.name} 拒絕了你的簽約提案，提升公司等級或名望再試試。`, ['經紀','簽約']);
+    alert('對方拒絕了');
+  }
+};
+App.utils.agencyRemoveClient = (pid)=>{
+  const ag = App.state.agency;
+  ag.clientIds = ag.clientIds.filter(id=>id!==pid);
+  App.save(); alert('已解除合約');
+  App.navigate('clients');
+};
+App.utils.buildClientWeeklyReport = (week)=>{
+  const ag = App.state.agency;
+  const clients = ag.clientIds.map(id=>App.state.players.find(p=>p.id===id)).filter(Boolean);
+  if(!clients.length) return `<h3>本週客戶報告</h3><div class="muted">目前沒有客戶</div>`;
+  const rows = clients.map(p=>{
+    const rec = p._lastWeekRec || {G:0,PA:0,H:0,HR:0,RBI:0,AVG:0};
+    return `<tr><td><a href="#/player?pid=${p.id}" onclick="App.navigate('player');return false;">${p.name}</a></td><td>${p.teamName||'-'}</td><td>${p.position}</td><td>${p.eval?.toFixed? p.eval.toFixed(1):p.eval}</td><td>${rec.G}</td><td>${rec.PA}</td><td>${rec.H}</td><td>${rec.HR}</td><td>${rec.RBI}</td><td>${rec.AVG}</td></tr>`;
+  }).join('');
+  return `<h3>本週客戶表現（W${week}）</h3><table class="table">
+  <thead><tr><th>球員</th><th>球隊</th><th>位置</th><th>評分</th><th>G</th><th>PA</th><th>H</th><th>HR</th><th>RBI</th><th>AVG</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+};
+

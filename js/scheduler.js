@@ -1,5 +1,18 @@
 
 App.sim = {
+  // age everyone at new season (week 1)
+  seasonAgeTick(){
+    if(App.state.week!==1) return;
+    for(const p of App.state.players){
+      p.age = (p.age||18) + 1;
+      // retirement chance 35-45
+      if(p.age>=35 && p.age<=45 && Math.random()< ( (p.age-34) * 0.02 )){
+        p.teamId=null; p.teamName='Retired'; p.status='retired';
+        App.utils.pushNews(App.state.week, `退役：${p.name}`, `${p.name}（${p.age}）宣布退役。`, ['退役']);
+      }
+      if(p.age>33) p.rating = Math.max(1, +(p.rating - 0.1).toFixed(2));
+    }
+  },
   ensureSchedule(){
     if(App.state.schedule.length) return;
     // simple double round robin by league for first 39 weeks
@@ -21,6 +34,7 @@ App.sim = {
     }
   },
   playWeek(week){
+    App.sim.seasonAgeTick();
     // make sure schedule exists
     this.ensureSchedule();
 
@@ -163,7 +177,48 @@ App.nextWeek = ()=>{
     return;
   }
   App.sim.playWeek(App.state.week);
-  App.state.week += 1;
-  App.save();
-  App.navigate(App.state.currentRoute);
+
+// Build client weekly snapshots for modal
+(function(){
+  const ag = App.state.agency||{clientIds:[]};
+  const clients = ag.clientIds.map(id=>App.state.players.find(p=>p.id===id)).filter(Boolean);
+  for(const p of clients){
+    // compute last week increment by diffing totals vs stored shadow
+    const prev = p._shadowStats||{G:0,PA:0,H:0,HR:0,RBI:0,AVG:0};
+    const rec = {G:p.stats.G - prev.G, PA:p.stats.PA - prev.PA, H:p.stats.H - prev.H, HR:p.stats.HR - prev.HR, RBI:p.stats.RBI - prev.RBI, AVG: p.stats.AVG};
+    p._lastWeekRec = rec;
+    p._shadowStats = {...p.stats};
+  }
+})();
+
+// 4-week recommendation
+if(App.state.week % 4 === 0 && (App.state.agency?.lastRecommendationWeek||0) !== App.state.week){
+  const candidates = App.state.players.filter(p=>!(App.state.agency.clientIds||[]).includes(p.id))
+    .sort((a,b)=> b.potential - a.potential).slice(0,10);
+  if(candidates.length){
+    const rec = candidates[Math.floor(Math.random()*candidates.length)];
+    App.state.agency._pendingRec = rec.id;
+    App.state.agency.lastRecommendationWeek = App.state.week;
+    App.utils.pushNews(App.state.week, '球探推薦', `球探推薦你接觸 ${rec.name}（${rec.teamName}）`, ['經紀','推薦']);
+  }
+}
+
+// Prepare modal sequence: 1) client weekly report 2) newspaper (best/worst already in news)
+const w = App.state.week;
+const clientReport = App.utils.buildClientWeeklyReport(w);
+const paper = (function(){
+  const items = App.state.news.filter(n=>n.week===w).slice(0,10).map(n=>`
+    <article>
+      <div class="tag">W${n.week}</div>
+      ${(n.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+      <h3>${n.title}</h3>
+      <div class="lead">${n.body}</div>
+    </article>`).join('') || '<div class="muted">本週無新聞</div>';
+  return `<h3>本週新聞</h3><div class="paper">${items}</div>`;
+})();
+
+// Advance week then show modals and finally return to current route
+App.state.week += 1;
+App.save();
+App.ui.showSequential([clientReport, paper], ()=>{ App.navigate(App.state.currentRoute); });
 };
