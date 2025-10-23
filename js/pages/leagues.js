@@ -1,26 +1,65 @@
-
+/* v1.7.1: Leagues page with tabs & divisions */
 (function(){
-  const id='page-leagues';
-  function render(root){
-    root.innerHTML=`<div class="container"><div class="card"><h2>各聯盟一覽</h2>
-      <div class="tabbar" id="lg-tabs"></div><div id="lg-content"></div></div></div>`;
-    const tabs=root.querySelector('#lg-tabs'), content=root.querySelector('#lg-content');
-    const leagues=(window.App&&window.App.leagues)||{}; const keys=Object.keys(leagues); let active=keys[0]||null;
-    keys.forEach(k=>{const b=document.createElement('button'); b.textContent=`${k} (${leagues[k].country||''})`; b.onclick=()=>{active=k;draw()}; tabs.appendChild(b);});
-    function draw(){
-      [...tabs.children].forEach(e=>e.classList.remove('active')); const i=keys.indexOf(active); if(i>=0) tabs.children[i].classList.add('active');
-      const lg=leagues[active]; if(!lg){content.innerHTML='<p>沒有資料</p>'; return;}
-      let html='';
-      if(lg.conferences){ Object.entries(lg.conferences).forEach(([conf,obj])=>{
-        html+=`<div class="division"><h3>${conf}</h3>`; Object.entries(obj.divisions||{}).forEach(([div,teams])=>{
-          html+=`<div class="division"><h4>${div}</h4><div>` + (teams||[]).map(t=>`<span class="team-chip">${t}</span>`).join('') + `</div></div>`;
-        }); html+=`</div>`; });
-      } else { Object.entries(lg.divisions||{}).forEach(([div,teams])=>{
-        html+=`<div class="division"><h4>${div}</h4><div>` + (teams||[]).map(t=>`<span class="team-chip">${t}</span>`).join('') + `</div></div>`;
-      }); }
-      content.innerHTML=html||'<p>尚無隊伍資料</p>';
+  const route = "#/leagues";
+  function render(){
+    const app = document.getElementById("app") || document.body;
+    app.innerHTML = "";
+    const h = document.createElement("div");
+    h.className="leagues-page";
+    h.innerHTML = `
+      <div class="page-wrap">
+        <h2 class="page-title">聯盟總覽</h2>
+        <div class="tabs" id="league-tabs"></div>
+        <div id="league-panel"></div>
+      </div>`;
+    app.appendChild(h);
+
+    const data = window.LEAGUE_OVERRIDES||{};
+    const leagues = Object.values(data);
+    const tabs = h.querySelector("#league-tabs");
+    const panel = h.querySelector("#league-panel");
+
+    function tabItem(l){ 
+      const b=document.createElement("button");
+      b.className="pill";
+      b.textContent = l.name + (l.level?`  (Lv.${l.level})`:"");
+      b.onclick=()=>openLeague(l);
+      return b;
     }
-    draw();
+    leagues.forEach(l => tabs.appendChild(tabItem(l)));
+    if(leagues[0]) openLeague(leagues[0]);
+
+    function openLeague(lg){
+      panel.innerHTML="";
+      lg.conferences.forEach(conf=>{
+        const confEl=document.createElement("div");
+        confEl.className="conf-block";
+        confEl.innerHTML=`<h3>${conf.name}</h3>`;
+        conf.divisions.forEach(div=>{
+          const d=document.createElement("div");
+          d.className="division";
+          d.innerHTML=`<h4>${div.name}</h4>`;
+          const list=document.createElement("ul");
+          list.className="team-list";
+          div.teams.forEach(t=>{
+            const li=document.createElement("li");
+            li.textContent=t;
+            list.appendChild(li);
+          });
+          d.appendChild(list);
+          confEl.appendChild(d);
+        });
+        panel.appendChild(confEl);
+      });
+    }
   }
-  window.Pages=window.Pages||{}; window.Pages[id]={render};
+
+  window.__registerLeaguesPage = render;
+
+  // Router hook
+  function onHash(){
+    if(location.hash===route){ render(); }
+  }
+  window.addEventListener("hashchange", onHash);
+  if(location.hash===route){ render(); }
 })();

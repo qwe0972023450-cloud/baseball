@@ -37,23 +37,3 @@ App.registerPage('clients', {
     `;
   }
 });
-
-(function(){
-  if (window.ClientsEnhanced) return; window.ClientsEnhanced=true;
-  function renderCompact(){
-    const host = document.getElementById('app'); if(!host) return;
-    const store = (window.Store&&window.Store.get)?window.Store.get():(window.App||{});
-    const players = store.players||[]; if(players.length===0) return;
-    const signed = window.Agency?window.Agency.signedPlayerIds():new Set();
-    const list = players.filter(p=>signed.has(p.id));
-    const rows = list.map(p=>`<div class="client-row">
-      <div class="name"><a href="#/client/${p.id}">${p.name||'-'}</a></div>
-      <div>${p.teamName||'-'}</div><div>$${(p.salary||0).toLocaleString()}</div><div>${p.position||'-'}</div>
-      <div class="rating">${(p.rating||0).toFixed(1)}</div></div>`).join('');
-    host.innerHTML = `<div class="container"><div class="card"><h2>客戶清單</h2>
-      <div class="client-row" style="font-weight:700"><div>球員</div><div>球隊</div><div>薪資</div><div>位置</div><div>評分</div></div>
-      ${rows || '<p>尚未簽入任何客戶</p>'}</div></div>`;
-  }
-  window.Router = window.Router || {}; const oldGo = window.Router.go;
-  window.Router.go = function(hash){ if(oldGo) oldGo.apply(this, arguments); if((hash||'').startsWith('#/clients')) setTimeout(renderCompact,30); };
-})();
