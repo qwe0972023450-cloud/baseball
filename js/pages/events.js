@@ -1,20 +1,14 @@
 App.registerPage('events', {
-  title:'事件',
-  render(state){
-    const evts = state.events.slice(0,30).map(e=>`
-      <article>
-        <div class="tag">W${e.week}</div>
-        <h3>${e.type==='brand'?'品牌聲量提升': e.type==='deal'?'商務合作':'負面新聞'}</h3>
-        <div class="lead">${e.text}</div>
-      </article>`).join('') || '<div class="muted">目前沒有事件</div>';
-    const recs = state.recommendations.slice(0,30).map(r=>{
-      const p = state.players.find(x=>x.id===r.playerId);
-      if(!p) return '';
-      return `<li><a href="#/player?pid=${p.id}">${p.name}</a>（${p.teamName||'FA'}，${p.position}，潛力 ${p.potential}）</li>`;
-    }).join('');
-    return `<div class="grid">
-      <section class="card"><h2>公司事件</h2><div class="paper">${evts}</div></section>
-      <section class="card"><h2>球探推薦</h2><ul>${recs || '<li class="muted">尚無推薦</li>'}</ul></section>
-    </div>`;
+  title:'事件/推薦',
+  render:function(state){
+    var ev = state.events.slice(0,30).map(function(e){
+      var title = (e.type==='brand'?'品牌聲量提升': e.type==='deal'?'商務合作':'負面新聞');
+      return '<article><div class="tag">W'+e.week+'</div><h3>'+title+'</h3><div class="lead">'+e.text+'</div></article>';
+    }).join('') || '<div class="muted">目前沒有事件</div>';
+    var recs = state.recommendations.slice(0,30).map(function(r){
+      var p = state.players.find(function(x){return x.id===r.playerId;}); if(!p) return '';
+      return '<li><a href="#/player?pid='+p.id+'">'+p.name+'</a>（'+(p.teamName||'FA')+'，'+p.position+'，潛力 '+p.potential+'）</li>';
+    }).join('') || '<li class="muted">尚無推薦</li>';
+    return '<div class="grid"><section class="card"><h2>公司事件</h2><div class="paper">'+ev+'</div></section><section class="card"><h2>球探推薦</h2><ul>'+recs+'</ul></section></div>';
   }
 });
