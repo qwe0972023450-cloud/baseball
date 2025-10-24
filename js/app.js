@@ -556,3 +556,16 @@ App.utils.agencyWeeklyTick = ()=>{
   ag.cash += Math.round(sum + (ag.cash*yieldRate));
   ag._lastCommission = Math.round(sum);
 };
+
+
+/* ---- runtime error overlay (debug) ---- */
+window.addEventListener('error', function(e){
+  var box=document.getElementById('errorbox'); if(!box){ box=document.createElement('div'); box.id='errorbox'; document.body.appendChild(box); }
+  box.style.cssText='position:fixed;left:8px;right:8px;bottom:60px;background:#7f1d1d;color:#fff;border:1px solid #b91c1c;border-radius:12px;padding:8px;z-index:99999;white-space:pre-wrap';
+  box.textContent = 'JS Error: '+(e.message||e)+' @ '+(e.filename||'')+':'+(e.lineno||'')+':'+(e.colno||'');
+});
+window.addEventListener('unhandledrejection', function(e){
+  var box=document.getElementById('errorbox'); if(!box){ box=document.createElement('div'); box.id='errorbox'; document.body.appendChild(box); }
+  box.style.cssText='position:fixed;left:8px;right:8px;bottom:60px;background:#7f1d1d;color:#fff;border:1px solid #b91c1c;border-radius:12px;padding:8px;z-index:99999;white-space:pre-wrap';
+  box.textContent = 'Promise Rejection: '+(e.reason&&e.reason.message?e.reason.message:e.reason);
+});
